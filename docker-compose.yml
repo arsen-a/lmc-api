@@ -1,0 +1,61 @@
+services:
+  db:
+    container_name: lmc-db
+    image: postgres:17
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    networks:
+      - lmc-network
+
+  lmcapi:
+    container_name: lmc-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - PORT=${PORT}
+    ports:
+      - '5000:5000'
+    depends_on:
+      - db
+    volumes:
+      - .:/lmcapi
+      - /lmcapi/node_modules
+    networks:
+      - lmc-network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    container_name: lmc-pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=lmc@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    ports:
+      - '5050:80'
+    depends_on:
+      - db
+    networks:
+      - lmc-network
+
+  mailpit:
+    image: axllent/mailpit:v1.15
+    ports:
+      - '1025:1025' # SMTP server
+      - '8025:8025' # Web interface
+    restart: unless-stopped
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    networks:
+      - lmc-network
+
+networks:
+  lmc-network:
+    driver: bridge
