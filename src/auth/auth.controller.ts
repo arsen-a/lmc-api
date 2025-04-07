@@ -14,7 +14,7 @@ import { LoginDto } from './dto/login.dto';
 import { CreateUserDto } from 'src/auth/dto/create-user.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { JwtPayload } from 'src/user/types/jwt-payload.type';
+import { JwtPayload } from 'src/auth/types/jwt-payload.type';
 
 @Controller('auth')
 export class AuthController {
