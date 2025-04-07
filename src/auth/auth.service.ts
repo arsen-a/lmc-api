@@ -4,18 +4,18 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UsersService } from 'src/users/users.service';
+import { UserService } from 'src/user/user.service';
 import * as bcrypt from 'bcrypt';
-import { User } from 'src/users/entities/user.entity';
+import { User } from 'src/user/entities/user.entity';
 import { omit } from 'lodash';
 import { CreateUserDto } from 'src/auth/dto/create-user.dto';
 import { MailService } from 'src/mail/mail.service';
-import { JwtPayload } from 'src/users/types/jwt-payload.type';
+import { JwtPayload } from 'src/user/types/jwt-payload.type';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private usersService: UsersService,
+    private userService: UserService,
     private jwtService: JwtService,
     private mailService: MailService,
   ) {}
@@ -24,7 +24,7 @@ export class AuthService {
     email: string,
     pass: string,
   ): Promise<Omit<User, 'password'>> {
-    const user = await this.usersService.findByEmail(email);
+    const user = await this.userService.findByEmail(email);
     if (user && (await bcrypt.compare(pass, user.password))) {
       if (!user.isVerified) {
         throw new UnauthorizedException(
@@ -45,11 +45,11 @@ export class AuthService {
   }
 
   async register(dto: CreateUserDto) {
-    const user = await this.usersService.findByEmail(dto.email);
+    const user = await this.userService.findByEmail(dto.email);
     if (user) {
       throw new BadRequestException('Email already exists');
     }
-    const createdUser = await this.usersService.create(dto);
+    const createdUser = await this.userService.create(dto);
 
     const token = this.jwtService.sign(
       { email: createdUser.email },
@@ -65,7 +65,7 @@ export class AuthService {
   async verifyEmail(token: string) {
     try {
       const payload = this.jwtService.verify<JwtPayload>(token);
-      await this.usersService.verifyByEmail(payload.email);
+      await this.userService.verifyByEmail(payload.email);
       return { message: 'Email successfully verified' };
     } catch {
       throw new BadRequestException('Invalid or expired token');
@@ -77,7 +77,7 @@ export class AuthService {
       throw new BadRequestException('Email is required');
     }
 
-    const user = await this.usersService.findByEmail(email);
+    const user = await this.userService.findByEmail(email);
 
     if (!user) {
       throw new BadRequestException('User not found');
@@ -100,7 +100,7 @@ export class AuthService {
       }
     }
 
-    await this.usersService.updateVerificationTimestamp(user.email, now);
+    await this.userService.updateVerificationTimestamp(user.email, now);
 
     const token = this.jwtService.sign(
       { email: user.email },
@@ -115,11 +115,11 @@ export class AuthService {
   }
 
   async loginWithGoogle(profile: { email: string; sub: string }) {
-    const existing = await this.usersService.findByEmail(profile.email);
+    const existing = await this.userService.findByEmail(profile.email);
     let user = existing;
 
     if (!user) {
-      user = await this.usersService.create({
+      user = await this.userService.create({
         email: profile.email,
         password: '', // not used
         isVerified: true,
