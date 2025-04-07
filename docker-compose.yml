@@ -4,7 +4,8 @@ services:
     image: postgres:17
     restart: always
     environment:
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_PASSWORD=lmc
+      - POSTGRES_USER=lmc
     volumes:
       - ./pgdata:/var/lib/postgresql/data
     ports:
@@ -17,8 +18,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    environment:
-      - PORT=${PORT}
     ports:
       - '5000:5000'
     depends_on:

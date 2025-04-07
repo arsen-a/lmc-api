@@ -1,17 +1,38 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
+import { Config } from 'src/config/config.type';
 
 @Injectable()
 export class MailService {
-  private transporter = nodemailer.createTransport({
-    host: 'mailpit', // Service name in docker-compose
-    port: 1025,
-    secure: false, // Mailpit does not use TLS by default
-  });
+  private transporter: nodemailer.Transporter;
+
+  constructor(private configService: ConfigService) {
+    const mailConfig = this.configService.get<Config['mail']>('mail');
+    if (!mailConfig) {
+      throw new Error('Mail configuration is not defined');
+    }
+    const isMailTls =
+      this.configService.get<string>('app.url')?.startsWith('https') ?? false;
+
+    this.transporter = nodemailer.createTransport({
+      host: mailConfig.host,
+      port: mailConfig.port,
+      secure: isMailTls,
+      auth: {
+        user: mailConfig.user,
+        pass: mailConfig.pass,
+      },
+    });
+  }
 
   async sendVerificationEmail(to: string, token: string) {
-    const port = process.env.PORT || 3000;
-    const url = `http://localhost:${port}/api/auth/verify?token=${token}`;
+    const appUrl = this.configService.get<string>('app.url');
+    if (!appUrl) {
+      throw new Error('APP_URL is not defined');
+    }
+    const url = `${appUrl}/api/auth/verify?token=${token}`;
+
     await this.transporter.sendMail({
       to,
       subject: 'Verify your email',

@@ -6,20 +6,39 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { User } from './users/entities/user.entity';
 import { MailService } from './mail/mail.service';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import databaseConfig from './config/database.config';
+import googleConfig from './config/google.config';
+import appConfig from './config/app.config';
+import mailConfig from './config/mail.config';
+import { Config } from './config/config.type';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'db',
-      port: 5432,
-      username: 'postgres',
-      password: 'postgres',
-      database: 'postgres',
-      entities: [User],
-      // Be careful with this option in production, as it can lead to data loss
-      synchronize: true,
-      autoLoadEntities: true,
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+      load: [googleConfig, databaseConfig, appConfig, mailConfig],
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (config: ConfigService) => {
+        const dbConfig = config.get<Config['database']>('database');
+        if (!dbConfig) {
+          throw new Error('Database configuration is not set');
+        }
+        return {
+          type: 'postgres',
+          host: dbConfig.host,
+          port: dbConfig.port,
+          username: dbConfig.username,
+          password: dbConfig.password,
+          database: dbConfig.name,
+          entities: [User],
+          synchronize: true,
+        };
+      },
+      inject: [ConfigService],
     }),
     AuthModule,
     UsersModule,

@@ -113,4 +113,19 @@ export class AuthService {
       message: 'Verification email resent. Please check your inbox',
     };
   }
+
+  async loginWithGoogle(profile: { email: string; sub: string }) {
+    const existing = await this.usersService.findByEmail(profile.email);
+    let user = existing;
+
+    if (!user) {
+      user = await this.usersService.create({
+        email: profile.email,
+        password: '', // not used
+        isVerified: true,
+      });
+    }
+
+    return this.login(user);
+  }
 }
