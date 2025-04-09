@@ -1,17 +1,20 @@
+import databaseConfig from './config/database.config';
+import googleConfig from './config/google.config';
+import appConfig from './config/app.config';
+import mailConfig from './config/mail.config';
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
-import { UserModule } from './user/user.module';
-import { User } from './user/entities/user.entity';
+import { UsersModule } from './users/users.module';
 import { MailService } from './mail/mail.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import databaseConfig from './config/database.config';
-import googleConfig from './config/google.config';
-import appConfig from './config/app.config';
-import mailConfig from './config/mail.config';
 import { Config } from './config/config.type';
+import { CollabsModule } from './collabs/collabs.module';
+import { User } from './users/entities/user.entity';
+import { Collab } from './collabs/entities/collab.entity';
+import { CollabUser } from './collabs/entities/collab-user.entity';
 
 @Module({
   imports: [
@@ -34,14 +37,15 @@ import { Config } from './config/config.type';
           username: dbConfig.username,
           password: dbConfig.password,
           database: dbConfig.name,
-          entities: [User],
+          entities: [User, Collab, CollabUser],
           synchronize: true,
         };
       },
       inject: [ConfigService],
     }),
     AuthModule,
-    UserModule,
+    UsersModule,
+    CollabsModule,
   ],
   controllers: [AppController],
   providers: [AppService, MailService],

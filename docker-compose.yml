@@ -28,20 +28,6 @@ services:
     networks:
       - lmc-network
 
-  pgadmin:
-    image: dpage/pgadmin4
-    restart: always
-    container_name: lmc-pgadmin
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=lmc@admin.com
-      - PGADMIN_DEFAULT_PASSWORD=admin
-    ports:
-      - '5050:80'
-    depends_on:
-      - db
-    networks:
-      - lmc-network
-
   mailpit:
     image: axllent/mailpit:v1.15
     ports:

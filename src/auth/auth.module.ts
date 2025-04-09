@@ -4,7 +4,7 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { UserModule } from '../user/user.module';
+import { UsersModule } from '../users/users.module';
 import { MailService } from 'src/mail/mail.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GoogleStrategy } from './strategies/google-auth.strategy';
@@ -20,7 +20,7 @@ import { GoogleStrategy } from './strategies/google-auth.strategy';
       }),
       inject: [ConfigService],
     }),
-    UserModule,
+    UsersModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, MailService, GoogleStrategy],

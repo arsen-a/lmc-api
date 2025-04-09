@@ -15,14 +15,19 @@ export class MailService {
     const isMailTls =
       this.configService.get<string>('app.url')?.startsWith('https') ?? false;
 
+    const auth =
+      mailConfig.user && mailConfig.pass
+        ? {
+            user: mailConfig.user,
+            pass: mailConfig.pass,
+          }
+        : undefined;
+
     this.transporter = nodemailer.createTransport({
       host: mailConfig.host,
       port: mailConfig.port,
       secure: isMailTls,
-      auth: {
-        user: mailConfig.user,
-        pass: mailConfig.pass,
-      },
+      auth,
     });
   }
 
