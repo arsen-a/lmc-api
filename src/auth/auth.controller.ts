@@ -11,10 +11,12 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { CreateUserDto } from 'src/auth/dto/create-user.dto';
+import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
+import { User } from 'src/users/entities/user.entity';
+import { plainToInstance } from 'class-transformer';
 
 @Controller('auth')
 export class AuthController {
@@ -42,6 +44,14 @@ export class AuthController {
   @UsePipes(new ValidationPipe({ whitelist: true }))
   async resendVerification(@Body() body: ResendVerificationDto) {
     return this.authService.resendVerificationEmail(body.email);
+  }
+
+  @Get('me')
+  @UseGuards(AuthGuard('jwt'))
+  getMe(@Req() req: Request & { user: User }) {
+    return plainToInstance(User, req.user, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @Get('google')
