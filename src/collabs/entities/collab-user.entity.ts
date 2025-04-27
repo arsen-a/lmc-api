@@ -26,7 +26,7 @@ export class CollabUser {
   })
   collab: Collab;
 
-  @ManyToOne(() => User, { eager: true, onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   user: User;
 
   @Column({ type: 'enum', enum: CollabRole, default: CollabRole.MEMBER })

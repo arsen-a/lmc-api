@@ -6,6 +6,7 @@ import {
   Req,
   Patch,
   Param,
+  Get,
 } from '@nestjs/common';
 import { CollabsService } from './collabs.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
@@ -16,11 +17,18 @@ import { CheckAbilities } from 'src/auth/decorators/check-abilities.decorator';
 import { PoliciesGuard } from 'src/auth/guards/policies.guard';
 import { CollabActions } from './policies/collabs-ability.factory';
 import { CollabContextGuard } from './guards/collab-context.guard';
+import { plainToInstance } from 'class-transformer';
 
 @Controller('collabs')
 @UseGuards(JwtAuthGuard, CollabContextGuard, PoliciesGuard)
 export class CollabController {
   constructor(private readonly collabsService: CollabsService) {}
+
+  @Get()
+  async index(@Req() req: Request & { user: { userId: string } }) {
+    const data = await this.collabsService.getCollabsForUser(req.user.userId);
+    return plainToInstance(Collab, data);
+  }
 
   @Post()
   async create(
@@ -32,6 +40,18 @@ export class CollabController {
       description: dto.description,
       userId: req.user.userId,
     });
+  }
+
+  @Get(':collabId')
+  @CheckAbilities<CollabActions, typeof Collab>({
+    action: 'read',
+    subject: Collab,
+  })
+  showCollab(
+    @Param('collabId') collabId: string,
+    @Req() req: Request & { subject: Collab },
+  ) {
+    return plainToInstance(Collab, req.subject);
   }
 
   @Patch(':collabId')

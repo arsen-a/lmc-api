@@ -8,13 +8,14 @@ import {
 import { Request } from 'express';
 import { CollabsService } from '../collabs.service';
 import { Subject } from '@casl/ability';
+import { User } from 'src/users/entities/user.entity';
 
 type CollabContextRequest = Request<
   { collabId?: string },
   any,
   { collabId?: string }
 > & {
-  user?: { userId: string; email: string };
+  user?: User;
   subject?: Subject;
   role?: string;
 };
@@ -25,10 +26,8 @@ export class CollabContextGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<CollabContextRequest>();
-
-    const collabId = req.params.collabId || req.body.collabId;
-    const userId = req.user?.userId;
-
+    const collabId = req.params.collabId || req.body?.collabId;
+    const userId = req.user?.id;
     if (!collabId || !userId) {
       return true;
     }

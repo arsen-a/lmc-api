@@ -7,6 +7,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import { CollabUser } from './collab-user.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity()
 export class Collab {
@@ -19,6 +20,7 @@ export class Collab {
   @Column({ nullable: true })
   description: string;
 
+  @Exclude()
   @OneToMany(() => CollabUser, (cu: CollabUser) => cu.collab)
   collabUsers: CollabUser[];
 

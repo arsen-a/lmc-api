@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Collab } from './entities/collab.entity';
 import { CollabUser, CollabRole } from './entities/collab-user.entity';
 import { User } from 'src/users/entities/user.entity';
@@ -69,5 +69,17 @@ export class CollabsService {
     }
 
     return { collab, role: collabUser.role };
+  }
+
+  async getCollabsForUser(userId: User['id']) {
+    return this.collabRepo.find({
+      where: {
+        collabUsers: {
+          user: { id: userId },
+          role: In(Object.values(CollabRole)),
+        },
+      },
+      relations: ['collabUsers'],
+    });
   }
 }

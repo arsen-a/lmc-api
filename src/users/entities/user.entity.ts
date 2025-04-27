@@ -21,7 +21,7 @@ export class User {
   @Column()
   password: string;
 
-  @Expose()
+  @Exclude()
   @Column({ default: false })
   isVerified: boolean;
 
