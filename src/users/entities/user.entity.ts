@@ -14,6 +14,14 @@ export class User {
   id: string;
 
   @Expose()
+  @Column()
+  firstName: string;
+
+  @Expose()
+  @Column()
+  lastName: string;
+
+  @Expose()
   @Column({ unique: true })
   email: string;
 

@@ -10,9 +10,9 @@ import {
   Req,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto';
-import { CreateUserDto } from 'src/users/dto/create-user.dto';
-import { ResendVerificationDto } from './dto/resend-verification.dto';
+import { LoginDto } from './auth.dto';
+import { CreateUserDto } from 'src/users/users.dto';
+import { ResendVerificationDto } from './auth.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { JwtPayload } from 'src/auth/types/jwt-payload.type';
 import { User } from 'src/users/entities/user.entity';

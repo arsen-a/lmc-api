@@ -6,9 +6,10 @@ import { CollabsService } from './collabs.service';
 import { CollabController } from './collabs.controller';
 import { CollabAbilityFactory } from './policies/collabs-ability.factory';
 import { User } from 'src/users/entities/user.entity';
+import { FilesModule } from 'src/files/files.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Collab, CollabUser, User])],
+  imports: [TypeOrmModule.forFeature([Collab, CollabUser, User]), FilesModule],
   providers: [
     CollabsService,
     {

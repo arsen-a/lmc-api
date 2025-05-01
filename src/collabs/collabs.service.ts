@@ -4,6 +4,7 @@ import { In, Repository } from 'typeorm';
 import { Collab } from './entities/collab.entity';
 import { CollabUser, CollabRole } from './entities/collab-user.entity';
 import { User } from 'src/users/entities/user.entity';
+import { isUUID } from 'class-validator';
 
 @Injectable()
 export class CollabsService {
@@ -50,7 +51,7 @@ export class CollabsService {
   }): Promise<{ collab: Collab | null; role: CollabRole | null }> {
     const { userId, collabId } = data;
 
-    if (!userId || !collabId) {
+    if (!userId || !collabId || !isUUID(collabId, '4')) {
       return { collab: null, role: null };
     }
 

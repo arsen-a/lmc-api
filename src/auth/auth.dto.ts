@@ -8,3 +8,8 @@ export class LoginDto {
   @MinLength(6)
   password: string;
 }
+
+export class ResendVerificationDto {
+  @IsEmail()
+  email: string;
+}

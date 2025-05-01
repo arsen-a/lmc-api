@@ -15,6 +15,8 @@ import { CollabsModule } from './collabs/collabs.module';
 import { User } from './users/entities/user.entity';
 import { Collab } from './collabs/entities/collab.entity';
 import { CollabUser } from './collabs/entities/collab-user.entity';
+import { FilesModule } from './files/files.module';
+import { FileEntity } from './files/files.entity';
 
 @Module({
   imports: [
@@ -37,7 +39,7 @@ import { CollabUser } from './collabs/entities/collab-user.entity';
           username: dbConfig.username,
           password: dbConfig.password,
           database: dbConfig.name,
-          entities: [User, Collab, CollabUser],
+          entities: [User, Collab, CollabUser, FileEntity],
           synchronize: true,
         };
       },
@@ -46,6 +48,7 @@ import { CollabUser } from './collabs/entities/collab-user.entity';
     AuthModule,
     UsersModule,
     CollabsModule,
+    FilesModule,
   ],
   controllers: [AppController],
   providers: [AppService, MailService],

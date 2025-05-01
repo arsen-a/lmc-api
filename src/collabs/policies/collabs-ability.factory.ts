@@ -8,7 +8,7 @@ import {
 import { Collab } from '../entities/collab.entity';
 import { CollabRole } from '../entities/collab-user.entity';
 
-export type CollabActions = 'read' | 'update' | 'invite' | 'manage';
+export type CollabActions = 'read' | 'update' | 'invite' | 'contribute';
 export type CollabSubjects = typeof Collab | Collab;
 export type CollabAbility = PureAbility<[CollabActions, CollabSubjects]>;
 
@@ -20,11 +20,12 @@ export class CollabAbilityFactory {
     );
 
     if (role === CollabRole.OWNER) {
-      can('manage', Collab);
+      can('contribute', Collab);
       can('invite', Collab);
       can('update', Collab);
       can('read', Collab);
     } else if (role === CollabRole.MEMBER) {
+      can('contribute', Collab);
       can('read', Collab);
     }
 
