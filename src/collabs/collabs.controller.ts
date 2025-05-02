@@ -4,7 +4,6 @@ import {
   Body,
   UseGuards,
   Req,
-  Param,
   Get,
   UseInterceptors,
   HttpCode,
@@ -13,6 +12,7 @@ import {
   ParseFilePipe,
   MaxFileSizeValidator,
   FileTypeValidator,
+  Param,
 } from '@nestjs/common';
 import { CollabsService } from './collabs.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
@@ -31,6 +31,7 @@ import { FilesService } from 'src/files/files.service';
 
 const allowedFileTypes =
   /(?:application\/pdf|image\/jpeg|image\/png|image\/heic|text\/plain)$/i;
+
 @Controller('collabs')
 @UseGuards(JwtAuthGuard, CollabContextGuard, PoliciesGuard)
 export class CollabController {
@@ -63,24 +64,19 @@ export class CollabController {
     action: 'read',
     subject: Collab,
   })
-  showCollab(
-    @Param('collabId') collabId: string,
-    @Req() req: Request & { subject: Collab },
-  ) {
+  showCollab(@Req() req: Request & { subject: Collab }) {
     return plainToInstance(Collab, req.subject);
   }
 
-  // @Patch(':collabId')
-  // @CheckAbilities<CollabActions, typeof Collab>({
-  //   action: 'update',
-  //   subject: Collab,
-  // })
-  // updateCollab(
-  //   @Param('collabId') collabId: string,
-  //   @Body() dto: Record<string, string>,
-  // ) {
-  //   console.log('collabId', collabId);
-  // }
+  @Get(':collabId/content')
+  @CheckAbilities<CollabActions, typeof Collab>({
+    action: 'read',
+    subject: Collab,
+  })
+  showCollabContent(@Param('collabId') collabId: string) {
+    const content = this.collabsService.getCollabContent(collabId);
+    return plainToInstance(FileEntity, content);
+  }
 
   @Post(':collabId/upload')
   @UseInterceptors(FileInterceptor('file'))

@@ -1,10 +1,15 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Collab } from './entities/collab.entity';
 import { CollabUser, CollabRole } from './entities/collab-user.entity';
 import { User } from 'src/users/entities/user.entity';
 import { isUUID } from 'class-validator';
+import { FileEntity } from 'src/files/files.entity';
 
 @Injectable()
 export class CollabsService {
@@ -15,6 +20,8 @@ export class CollabsService {
     private readonly collabUserRepo: Repository<CollabUser>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(FileEntity)
+    private readonly fileRepo: Repository<FileEntity>,
   ) {}
 
   async createCollab(data: {
@@ -81,6 +88,20 @@ export class CollabsService {
         },
       },
       relations: ['collabUsers'],
+    });
+  }
+
+  async getCollabContent(collabId: string) {
+    if (!collabId || !isUUID(collabId)) {
+      throw new NotFoundException();
+    }
+
+    return await this.fileRepo.find({
+      where: {
+        relatedModelName: Collab.name,
+        relatedModelId: collabId,
+      },
+      relations: ['user'],
     });
   }
 }

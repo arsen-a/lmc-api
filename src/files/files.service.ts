@@ -47,7 +47,11 @@ export class FilesService {
     try {
       const fileExtension = path.extname(file.originalname);
       const uniqueFilename = `${uuidv4()}${fileExtension}`;
-      const storagePath = path.join(this.localUploadPath, relatedModelName);
+      const storagePath = path.join(
+        this.localUploadPath,
+        relatedModelName,
+        relatedModelId,
+      );
       filePath = path.join(storagePath, uniqueFilename);
 
       await this.ensureDirectoryExists(storagePath);
