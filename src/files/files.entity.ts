@@ -1,4 +1,5 @@
 import { Expose } from 'class-transformer';
+import { ContentChunk } from 'src/content-chunks/content-chunks.entity';
 import { User } from 'src/users/entities/user.entity';
 import {
   Column,
@@ -7,6 +8,7 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -53,4 +55,10 @@ export class FileEntity {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany(() => ContentChunk, (contentChunk) => contentChunk.file, {
+    cascade: ['insert', 'update'],
+    eager: false,
+  })
+  contentChunks?: ContentChunk[];
 }

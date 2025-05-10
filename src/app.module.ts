@@ -17,13 +17,16 @@ import { Collab } from './collabs/entities/collab.entity';
 import { CollabUser } from './collabs/entities/collab-user.entity';
 import { FilesModule } from './files/files.module';
 import { FileEntity } from './files/files.entity';
+import { ContentChunksModule } from './content-chunks/content-chunks.module';
+import { ContentChunk } from './content-chunks/content-chunks.entity';
+import milvusConfig from './config/milvus.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
-      load: [googleConfig, databaseConfig, appConfig, mailConfig],
+      load: [googleConfig, databaseConfig, appConfig, mailConfig, milvusConfig],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -39,7 +42,7 @@ import { FileEntity } from './files/files.entity';
           username: dbConfig.username,
           password: dbConfig.password,
           database: dbConfig.name,
-          entities: [User, Collab, CollabUser, FileEntity],
+          entities: [User, Collab, CollabUser, FileEntity, ContentChunk],
           synchronize: true,
         };
       },
@@ -49,6 +52,7 @@ import { FileEntity } from './files/files.entity';
     UsersModule,
     CollabsModule,
     FilesModule,
+    ContentChunksModule,
   ],
   controllers: [AppController],
   providers: [AppService, MailService],

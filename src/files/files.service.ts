@@ -11,6 +11,10 @@ import { FileEntity } from './files.entity';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid'; // For generating unique filenames
+import { ContentChunk } from 'src/content-chunks/content-chunks.entity';
+import { ConfigService } from '@nestjs/config';
+import { GoogleGenAI } from '@google/genai';
+import { MilvusClient } from '@zilliz/milvus2-sdk-node';
 
 @Injectable()
 export class FilesService {
@@ -20,6 +24,7 @@ export class FilesService {
   constructor(
     @InjectRepository(FileEntity)
     private readonly fileRepository: Repository<FileEntity>,
+    private readonly configService: ConfigService,
   ) {}
 
   private async ensureDirectoryExists(directoryPath: string): Promise<void> {
@@ -42,8 +47,6 @@ export class FilesService {
 
     let filePath: string;
 
-    // --- Storage Logic (Local for now) ---
-    // TODO: Replace this section with your S3/Cloud Storage logic later
     try {
       const fileExtension = path.extname(file.originalname);
       const uniqueFilename = `${uuidv4()}${fileExtension}`;
@@ -56,19 +59,21 @@ export class FilesService {
 
       await this.ensureDirectoryExists(storagePath);
       await fs.writeFile(filePath, file.buffer);
-
-      // In a real scenario with S3, 'storagePath' would become the S3 Object Key,
-      // and the local temporary file might not be needed or should be cleaned up.
-      // Example:
-      // const s3Key = `collab_content/${uniqueFilename}`;
-      // await this.s3StorageService.upload(file.buffer, s3Key, file.mimetype);
-      // storagePath = s3Key; // Save the S3 key as the path
     } catch (error) {
       throw new InternalServerErrorException(
         `Failed to store uploaded file: ${error}`,
       );
     }
-    // --- End Storage Logic ---
+
+    const contentChunks: ContentChunk[] = [];
+
+    if (file.mimetype === 'text/plain') {
+      const content = file.buffer.toString('utf-8');
+      const cleanedContent = content.replace(/\s+/g, ' ').trim();
+      const chunk = new ContentChunk();
+      chunk.content = cleanedContent;
+      contentChunks.push(chunk);
+    }
 
     try {
       const newFile = this.fileRepository.create({
@@ -79,11 +84,53 @@ export class FilesService {
         userId,
         relatedModelId,
         relatedModelName,
+        contentChunks,
       });
 
       const savedFile = await this.fileRepository.save(newFile);
+
+      const googleClient = new GoogleGenAI({
+        apiKey: this.configService.get('google.geminiApiKey'),
+      });
+
+      const milvusClient = new MilvusClient({
+        address: this.configService.get('milvus.uri') ?? '',
+        token: this.configService.get('milvus.token') ?? '',
+      });
+
+      const { embeddings } = await googleClient.models.embedContent({
+        model: 'gemini-embedding-exp-03-07',
+        contents: contentChunks.map((chunk) => chunk.content),
+        config: {
+          taskType: 'SEMANTIC_SIMILARITY',
+        },
+      });
+
+      this.logger.log(embeddings);
+
+      const vectorRecords =
+        embeddings?.map((embedding, index) => {
+          // embedding.values;
+          return {
+            id: contentChunks[index].id,
+            vector: embedding,
+            metadata: {
+              content: contentChunks[index].content,
+              fileId: savedFile.id,
+              relatedModelId,
+              relatedModelName,
+            },
+          };
+        }) ?? [];
+
+      await milvusClient.upsert({
+        collection_name: 'collab_content_chunks_new',
+        data: vectorRecords,
+      });
+
       return savedFile;
-    } catch {
+    } catch (error) {
+      this.logger.error(error);
       // Optional: Attempt to delete the physically stored file if DB save fails (cleanup)
       try {
         await fs.unlink(filePath); // Adjust for S3 if needed (deleteObject)

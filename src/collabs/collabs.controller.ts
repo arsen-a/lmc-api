@@ -11,7 +11,7 @@ import {
   UploadedFile,
   ParseFilePipe,
   MaxFileSizeValidator,
-  FileTypeValidator,
+  // FileTypeValidator,
   Param,
 } from '@nestjs/common';
 import { CollabsService } from './collabs.service';
@@ -29,8 +29,8 @@ import { User } from 'src/users/entities/user.entity';
 import { FileEntity } from 'src/files/files.entity';
 import { FilesService } from 'src/files/files.service';
 
-const allowedFileTypes =
-  /(?:application\/pdf|image\/jpeg|image\/png|image\/heic|text\/plain)$/i;
+// const allowedFileTypes =
+//   /(?:application\/pdf|image\/jpeg|image\/png|image\/heic|text\/plain)$/i;
 
 @Controller('collabs')
 @UseGuards(JwtAuthGuard, CollabContextGuard, PoliciesGuard)
@@ -78,19 +78,19 @@ export class CollabController {
     return plainToInstance(FileEntity, content);
   }
 
-  @Post(':collabId/upload')
+  @Post(':collabId/content')
   @UseInterceptors(FileInterceptor('file'))
   @CheckAbilities<CollabActions, typeof Collab>({
     action: 'contribute',
     subject: Collab,
   })
   @HttpCode(HttpStatus.CREATED)
-  async contributeToCollab(
+  async addContent(
     @UploadedFile(
       new ParseFilePipe({
         validators: [
           new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }),
-          new FileTypeValidator({ fileType: allowedFileTypes }),
+          // new FileTypeValidator({ fileType: allowedFileTypes }),
         ],
       }),
     )

@@ -8,11 +8,13 @@ import { CollabAbilityFactory } from './policies/collabs-ability.factory';
 import { User } from 'src/users/entities/user.entity';
 import { FilesModule } from 'src/files/files.module';
 import { FileEntity } from 'src/files/files.entity';
+import { ContentChunksModule } from 'src/content-chunks/content-chunks.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Collab, CollabUser, User, FileEntity]),
     FilesModule,
+    ContentChunksModule,
   ],
   providers: [
     CollabsService,

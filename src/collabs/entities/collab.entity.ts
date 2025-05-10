@@ -9,7 +9,7 @@ import {
 import { CollabUser } from './collab-user.entity';
 import { Exclude } from 'class-transformer';
 
-@Entity()
+@Entity('collabs')
 export class Collab {
   @PrimaryGeneratedColumn('uuid')
   id: string;

@@ -13,6 +13,7 @@ export interface Config {
   google: {
     clientId: string;
     clientSecret: string;
+    geminiApiKey: string;
   };
   mail: {
     host: string;
