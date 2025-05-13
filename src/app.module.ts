@@ -19,6 +19,7 @@ import { FilesModule } from './files/files.module';
 import { FileEntity } from './files/files.entity';
 import { ContentChunksModule } from './content-chunks/content-chunks.module';
 import { ContentChunk } from './content-chunks/content-chunks.entity';
+import { VectorStoreModule } from './vector-store/vector-store.module';
 import milvusConfig from './config/milvus.config';
 
 @Module({
@@ -53,6 +54,7 @@ import milvusConfig from './config/milvus.config';
     CollabsModule,
     FilesModule,
     ContentChunksModule,
+    VectorStoreModule,
   ],
   controllers: [AppController],
   providers: [AppService, MailService],

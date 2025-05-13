@@ -26,12 +26,12 @@ export class UsersService {
     return this.userRepository.findOne({ where: { id } });
   }
 
-  async create(dto: CreateUserDto): Promise<User> {
+  async create(dto: CreateUserDto, isVerified: boolean = false): Promise<User> {
     const hashedPassword = await bcrypt.hash(dto.password, 10);
     const user = this.userRepository.create({
       ...dto,
       password: hashedPassword,
-      isVerified: false, // new field
+      isVerified,
     });
     return this.userRepository.save(user);
   }

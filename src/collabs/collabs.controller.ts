@@ -11,8 +11,8 @@ import {
   UploadedFile,
   ParseFilePipe,
   MaxFileSizeValidator,
-  // FileTypeValidator,
   Param,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { CollabsService } from './collabs.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
@@ -28,9 +28,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { User } from 'src/users/entities/user.entity';
 import { FileEntity } from 'src/files/files.entity';
 import { FilesService } from 'src/files/files.service';
-
-// const allowedFileTypes =
-//   /(?:application\/pdf|image\/jpeg|image\/png|image\/heic|text\/plain)$/i;
+import { VectorStoreService } from 'src/vector-store/vector-store.service';
 
 @Controller('collabs')
 @UseGuards(JwtAuthGuard, CollabContextGuard, PoliciesGuard)
@@ -38,6 +36,7 @@ export class CollabController {
   constructor(
     private readonly collabsService: CollabsService,
     private readonly filesService: FilesService,
+    private readonly vectorStoreService: VectorStoreService,
   ) {}
 
   @Get()
@@ -88,15 +87,26 @@ export class CollabController {
   async addContent(
     @UploadedFile(
       new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }),
-          // new FileTypeValidator({ fileType: allowedFileTypes }),
-        ],
+        validators: [new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 })],
       }),
     )
     file: Express.Multer.File,
     @Req() req: Request & { subject: Collab; user: User },
   ): Promise<FileEntity> {
+    const allowedMimeTypes = [
+      'application/pdf',
+      'text/plain',
+      'image/jpeg',
+      'image/png',
+      'image/heic',
+    ];
+
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      throw new UnprocessableEntityException(
+        `Unsupported file type. Allowed types are: ${allowedMimeTypes.join(', ')}`,
+      );
+    }
+
     const user = req.user;
     const collab = req.subject;
 
@@ -107,10 +117,12 @@ export class CollabController {
       collab.id,
     );
 
-    // 1. extract the content out of the file
-    // 2. store the whole content of the collab contribution
-    // 3. store chunks of the the content
-    // 4. create embeddings and push to zilliz
+    await this.vectorStoreService.createChunksAndEmbeddings({
+      rawFile: file,
+      savedFile: savedFileEntity,
+      relatedModelId: collab.id,
+      relatedModelName: Collab.name,
+    });
 
     return savedFileEntity;
   }
