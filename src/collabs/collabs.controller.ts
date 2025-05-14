@@ -112,7 +112,7 @@ export class CollabController {
 
     const savedFileEntity = await this.filesService.uploadFile(
       file,
-      user.id,
+      user,
       Collab.name,
       collab.id,
     );

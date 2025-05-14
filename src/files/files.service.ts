@@ -14,6 +14,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { isUUID } from 'class-validator';
+import { User } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class FilesService {
@@ -35,11 +36,11 @@ export class FilesService {
 
   async uploadFile(
     file: Express.Multer.File,
-    userId: string,
+    user: User,
     relatedModelName: string,
     relatedModelId: string,
   ): Promise<FileEntity> {
-    const idsValid = [userId, relatedModelId].every((id) => isUUID(id));
+    const idsValid = [user.id, relatedModelId].every((id) => isUUID(id));
     if (!idsValid || !file || !relatedModelName) {
       throw new UnprocessableEntityException('Needed metadata not provided');
     }
@@ -70,7 +71,7 @@ export class FilesService {
         mimeType: file.mimetype,
         size: file.size,
         path: filePath,
-        userId,
+        user,
         relatedModelId,
         relatedModelName,
       });
