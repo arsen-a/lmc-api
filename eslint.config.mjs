@@ -29,7 +29,17 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-floating-promises': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn'
+      '@typescript-eslint/no-unsafe-argument': 'warn',
+      'prettier/prettier': [
+        'warn',
+        {
+          printWidth: 100,
+          singleQuote: true,
+          trailingComma: 'all',
+          arrowParens: 'always',
+          endOfLine: 'auto',
+        },
+      ],
     },
   },
 );

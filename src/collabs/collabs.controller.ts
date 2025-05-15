@@ -16,7 +16,7 @@ import {
 } from '@nestjs/common';
 import { CollabsService } from './collabs.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
-import { CreateCollabDto } from './collabs.dto';
+import { CollabPromptDto, CreateCollabDto } from './collabs.dto';
 import { Request } from 'express';
 import { Collab } from './entities/collab.entity';
 import { CheckAbilities } from 'src/auth/decorators/check-abilities.decorator';
@@ -29,6 +29,7 @@ import { User } from 'src/users/entities/user.entity';
 import { FileEntity } from 'src/files/files.entity';
 import { FilesService } from 'src/files/files.service';
 import { VectorStoreService } from 'src/vector-store/vector-store.service';
+import { map } from 'rxjs';
 
 @Controller('collabs')
 @UseGuards(JwtAuthGuard, CollabContextGuard, PoliciesGuard)
@@ -46,10 +47,7 @@ export class CollabController {
   }
 
   @Post()
-  async create(
-    @Body() dto: CreateCollabDto,
-    @Req() req: Request & { user: { userId: string } },
-  ) {
+  async create(@Body() dto: CreateCollabDto, @Req() req: Request & { user: { userId: string } }) {
     const data = await this.collabsService.createCollab({
       title: dto.title,
       description: dto.description,
@@ -79,10 +77,7 @@ export class CollabController {
 
   @Post(':collabId/content')
   @UseInterceptors(FileInterceptor('file'))
-  @CheckAbilities<CollabActions, typeof Collab>({
-    action: 'contribute',
-    subject: Collab,
-  })
+  @CheckAbilities<CollabActions, typeof Collab>({ action: 'contribute', subject: Collab })
   @HttpCode(HttpStatus.CREATED)
   async addContent(
     @UploadedFile(
@@ -110,12 +105,7 @@ export class CollabController {
     const user = req.user;
     const collab = req.subject;
 
-    const savedFileEntity = await this.filesService.uploadFile(
-      file,
-      user,
-      Collab.name,
-      collab.id,
-    );
+    const savedFileEntity = await this.filesService.uploadFile(file, user, Collab.name, collab.id);
 
     await this.vectorStoreService.createChunksAndEmbeddings({
       rawFile: file,
@@ -125,5 +115,14 @@ export class CollabController {
     });
 
     return savedFileEntity;
+  }
+
+  @Post(':collabId/prompt')
+  @CheckAbilities<CollabActions, typeof Collab>({ action: 'read', subject: Collab })
+  @HttpCode(HttpStatus.OK)
+  promptCollab(@Param('collabId') collabId: string, @Body() promptRequestDto: CollabPromptDto) {
+    return this.vectorStoreService
+      .processMessageStream(collabId, promptRequestDto.messages)
+      .pipe(map((chunk) => ({ data: chunk.data }) as MessageEvent));
   }
 }
