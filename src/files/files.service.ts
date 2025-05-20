@@ -50,19 +50,13 @@ export class FilesService {
     try {
       const fileExtension = path.extname(file.originalname);
       const uniqueFilename = `${uuidv4()}${fileExtension}`;
-      const storagePath = path.join(
-        this.localUploadPath,
-        relatedModelName,
-        relatedModelId,
-      );
+      const storagePath = path.join(this.localUploadPath, relatedModelName, relatedModelId);
       filePath = path.join(storagePath, uniqueFilename);
 
       await this.ensureDirectoryExists(storagePath);
       await fs.writeFile(filePath, file.buffer);
     } catch (error) {
-      throw new InternalServerErrorException(
-        `Failed to store uploaded file: ${error}`,
-      );
+      throw new InternalServerErrorException(`Failed to store uploaded file: ${error}`);
     }
 
     try {

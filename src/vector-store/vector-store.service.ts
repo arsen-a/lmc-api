@@ -27,8 +27,7 @@ export class VectorStoreService {
   private llm: ChatGoogleGenerativeAI;
   private embeddings: GoogleGenerativeAIEmbeddings;
   private vectorStore: Milvus;
-  private readonly systemMessageContent =
-    'You are a helpful assistant. Answer the users questions based on the provided context.';
+
   private readonly collectionName = 'collab_content_chunks';
 
   constructor(
@@ -154,12 +153,20 @@ export class VectorStoreService {
       );
 
     const retriever = this.vectorStore.asRetriever({
-      k: 3,
+      k: 5,
       filter: `metadata["relatedModelName"] == 'Collab' and metadata["relatedModelId"] == '${collabId}'`,
     });
 
+    const systemMessageContent = `
+      You are an assistant working at "LLM Collab" that answers user questions based on the context provided below.
+      You do not tell the user that you are answering based on the context.
+      You are not allowed to make up information or hallucinate.
+      If the question is not related to the context explain that you are not able to answer and keep the conversation going in a friendly manner.
+      If the context is not enough to answer the question, you can ask for more information to lead you to the answer.
+    `;
+
     const prompt = ChatPromptTemplate.fromMessages([
-      ['system', this.systemMessageContent + '\nContext:\n{context}'],
+      ['system', systemMessageContent + '\nContext:\n{context}'],
       new MessagesPlaceholder('chat_history'),
       ['human', '{input}'],
     ]);

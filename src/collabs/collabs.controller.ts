@@ -13,6 +13,7 @@ import {
   MaxFileSizeValidator,
   Param,
   UnprocessableEntityException,
+  Sse,
 } from '@nestjs/common';
 import { CollabsService } from './collabs.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
@@ -118,8 +119,8 @@ export class CollabController {
   }
 
   @Post(':collabId/prompt')
+  @Sse()
   @CheckAbilities<CollabActions, typeof Collab>({ action: 'read', subject: Collab })
-  @HttpCode(HttpStatus.OK)
   promptCollab(@Param('collabId') collabId: string, @Body() promptRequestDto: CollabPromptDto) {
     return this.vectorStoreService
       .processMessageStream(collabId, promptRequestDto.messages)
