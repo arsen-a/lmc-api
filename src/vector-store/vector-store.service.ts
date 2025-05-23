@@ -1,150 +1,101 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { GoogleGenAI } from '@google/genai';
-import { MilvusClient } from '@zilliz/milvus2-sdk-node';
 import { ConfigService } from '@nestjs/config';
-import { FileEntity } from 'src/files/files.entity';
-import { ContentChunk } from 'src/content-chunks/content-chunks.entity';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
+import { TaskType } from '@google/generative-ai';
 import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts';
 import { StringOutputParser } from '@langchain/core/output_parsers';
-import { RunnableLambda, RunnableSequence } from '@langchain/core/runnables';
+import { RunnableSequence } from '@langchain/core/runnables';
 import { HumanMessage, AIMessage } from '@langchain/core/messages';
 import { Milvus } from '@langchain/community/vectorstores/milvus';
 import { formatDocumentsAsString } from 'langchain/util/document';
 import { Observable } from 'rxjs';
 import { CollabPromptMessageDto } from 'src/collabs/collabs.dto';
 import { Document } from '@langchain/core/documents';
+import { ContentChunksService } from 'src/content-chunks/content-chunks.service';
+import { User } from 'src/users/entities/user.entity';
+import { Collab } from 'src/collabs/entities/collab.entity';
 
-// TODO: Refactor the whole service
 @Injectable()
 export class VectorStoreService {
-  // TODO: Refactor to use langchain
-  private readonly googleClient: GoogleGenAI;
-  private readonly milvusClient: MilvusClient;
-  // ============================================
   private llm: ChatGoogleGenerativeAI;
-  private embeddings: GoogleGenerativeAIEmbeddings;
-  private vectorStore: Milvus;
-
-  private readonly collectionName = 'collab_content_chunks';
 
   constructor(
     private readonly configService: ConfigService,
-    @InjectRepository(ContentChunk)
-    private readonly contentChunkRepository: Repository<ContentChunk>,
+    private readonly contentChunkService: ContentChunksService,
   ) {
-    this.googleClient = new GoogleGenAI({
-      apiKey: this.configService.get('google.geminiApiKey'),
-    });
-
-    this.milvusClient = new MilvusClient({
-      address: this.configService.get('milvus.uri') ?? '',
-      token: this.configService.get('milvus.token') ?? '',
-    });
-
     this.llm = new ChatGoogleGenerativeAI({
       apiKey: this.configService.get<string>('google.geminiApiKey'),
       streaming: true,
       model: 'gemini-2.0-flash',
     });
+  }
 
-    this.embeddings = new GoogleGenerativeAIEmbeddings({
+  private getVectorStoreInstance(task: 'query' | 'store'): Milvus {
+    const embeddingProvider = new GoogleGenerativeAIEmbeddings({
       apiKey: this.configService.get<string>('google.geminiApiKey'),
       model: 'gemini-embedding-exp-03-07',
+      taskType: task === 'query' ? TaskType.RETRIEVAL_QUERY : TaskType.RETRIEVAL_DOCUMENT,
     });
 
-    this.vectorStore = new Milvus(this.embeddings, {
+    const vectorStore = new Milvus(embeddingProvider, {
       clientConfig: {
         token: this.configService.get<string>('milvus.token') ?? '',
         address: this.configService.get<string>('milvus.uri') ?? '',
       },
-      collectionName: this.collectionName,
+      collectionName: 'collab_content_chunks',
       indexCreateOptions: {
         metric_type: 'COSINE',
         index_type: 'HNSW',
       },
       vectorField: 'vector',
+      primaryField: 'id',
+      textField: 'content',
     });
 
-    this.vectorStore.fields = ['id', 'metadata'];
+    vectorStore.fields = ['content', 'chunkId', 'fileId', 'collabId'];
+    return vectorStore;
   }
 
-  async createChunksAndEmbeddings(data: {
-    rawFile: Express.Multer.File;
-    savedFile: FileEntity;
-    relatedModelId: string;
-    relatedModelName: string;
-  }) {
-    const { savedFile, relatedModelId, relatedModelName, rawFile } = data;
+  async createChunksAndEmbeddings(data: { file: Express.Multer.File; user: User; collab: Collab }) {
+    const { user, collab, file } = data;
 
-    const contentChunks: ContentChunk[] = [];
+    const createdContentChunks = await this.contentChunkService.chunkCollabFileContent({
+      file,
+      user,
+      collab,
+    });
 
-    if (rawFile.mimetype === 'text/plain') {
-      const content = rawFile.buffer.toString('utf-8');
-      const cleanedContent = content.replace(/\s+/g, ' ').trim();
-      const chunk = new ContentChunk();
-      chunk.file = savedFile;
-      chunk.content = cleanedContent;
-      contentChunks.push(chunk);
-    }
-
-    if (!contentChunks.length) {
+    if (!createdContentChunks.length) {
       return;
     }
 
-    let createdContentChunks: ContentChunk[];
+    const fileId = createdContentChunks[0].file.id;
+
+    const documents = createdContentChunks.map((chunk) => {
+      return new Document({
+        pageContent: chunk.content,
+        metadata: {
+          chunkId: chunk.id,
+          fileId,
+          collabId: collab.id,
+        },
+      });
+    });
+
+    const ids = createdContentChunks.map(({ id }) => id);
 
     try {
-      createdContentChunks = await this.contentChunkRepository.manager.transaction(
-        async (transactionalEntityManager) => {
-          return await transactionalEntityManager.save(ContentChunk, contentChunks);
-        },
-      );
+      await this.getVectorStoreInstance('store').addDocuments(documents, { ids });
     } catch (error) {
+      console.error('Error adding documents to Milvus via Langchain:', error);
       throw new InternalServerErrorException(
-        'Error saving content chunks to the database',
-        String(error),
+        'Error processing the provided data',
+        'Error generating embeddings or saving to vector store',
       );
     }
-
-    const { embeddings } = await this.googleClient.models.embedContent({
-      model: 'gemini-embedding-exp-03-07',
-      contents: createdContentChunks.map((chunk) => chunk.content),
-      config: {
-        taskType: 'SEMANTIC_SIMILARITY',
-      },
-    });
-
-    if (embeddings === undefined) {
-      throw new InternalServerErrorException('Error generating embeddings for file');
-    }
-
-    const vectorRecords = embeddings.map((embedding, index) => {
-      const chunk = createdContentChunks[index];
-      return {
-        id: chunk.id,
-        vector: embedding.values,
-        metadata: {
-          content: chunk.content,
-          fileId: savedFile.id,
-          relatedModelId,
-          relatedModelName,
-        },
-      };
-    });
-
-    await this.milvusClient.upsert({
-      collection_name: 'collab_content_chunks',
-      data: vectorRecords,
-    });
   }
 
-  processMessageStream(
-    collabId: string,
-    messages: CollabPromptMessageDto[],
-  ): Observable<{ data: string }> {
+  promptCollab(collabId: string, messages: CollabPromptMessageDto[]): Observable<{ data: string }> {
     const latestUserMessage = messages[messages.length - 1].content;
     const chatHistory = messages
       .slice(0, -1)
@@ -152,9 +103,9 @@ export class VectorStoreService {
         msg.role === 'user' ? new HumanMessage(msg.content) : new AIMessage(msg.content),
       );
 
-    const retriever = this.vectorStore.asRetriever({
+    const retriever = this.getVectorStoreInstance('query').asRetriever({
       k: 5,
-      filter: `metadata["relatedModelName"] == 'Collab' and metadata["relatedModelId"] == '${collabId}'`,
+      filter: `collabId == '${collabId}'`,
     });
 
     const systemMessageContent = `
@@ -166,7 +117,7 @@ export class VectorStoreService {
     `;
 
     const prompt = ChatPromptTemplate.fromMessages([
-      ['system', systemMessageContent + '\nContext:\n{context}'],
+      ['system', systemMessageContent + '\n\nContext:\n{context}'],
       new MessagesPlaceholder('chat_history'),
       ['human', '{input}'],
     ]);
@@ -176,14 +127,6 @@ export class VectorStoreService {
     const retrieverChain = RunnableSequence.from([
       (input: ChainInput) => input.input,
       retriever,
-      new RunnableLambda({
-        func: (docs: Document<{ metadata: { content: string } }>[]) => {
-          return docs.map((doc) => {
-            doc.pageContent = doc.metadata.metadata.content;
-            return doc;
-          });
-        },
-      }),
       formatDocumentsAsString,
     ]);
 

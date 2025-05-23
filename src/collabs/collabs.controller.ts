@@ -28,7 +28,6 @@ import { plainToInstance } from 'class-transformer';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { User } from 'src/users/entities/user.entity';
 import { FileEntity } from 'src/files/files.entity';
-import { FilesService } from 'src/files/files.service';
 import { VectorStoreService } from 'src/vector-store/vector-store.service';
 import { map } from 'rxjs';
 
@@ -37,7 +36,6 @@ import { map } from 'rxjs';
 export class CollabController {
   constructor(
     private readonly collabsService: CollabsService,
-    private readonly filesService: FilesService,
     private readonly vectorStoreService: VectorStoreService,
   ) {}
 
@@ -88,7 +86,7 @@ export class CollabController {
     )
     file: Express.Multer.File,
     @Req() req: Request & { subject: Collab; user: User },
-  ): Promise<FileEntity> {
+  ) {
     const allowedMimeTypes = [
       'application/pdf',
       'text/plain',
@@ -106,24 +104,19 @@ export class CollabController {
     const user = req.user;
     const collab = req.subject;
 
-    const savedFileEntity = await this.filesService.uploadFile(file, user, Collab.name, collab.id);
-
     await this.vectorStoreService.createChunksAndEmbeddings({
-      rawFile: file,
-      savedFile: savedFileEntity,
-      relatedModelId: collab.id,
-      relatedModelName: Collab.name,
+      file,
+      user,
+      collab,
     });
-
-    return savedFileEntity;
   }
 
   @Post(':collabId/prompt')
   @Sse()
   @CheckAbilities<CollabActions, typeof Collab>({ action: 'read', subject: Collab })
-  promptCollab(@Param('collabId') collabId: string, @Body() promptRequestDto: CollabPromptDto) {
+  prompt(@Param('collabId') collabId: string, @Body() promptRequestDto: CollabPromptDto) {
     return this.vectorStoreService
-      .processMessageStream(collabId, promptRequestDto.messages)
+      .promptCollab(collabId, promptRequestDto.messages)
       .pipe(map((chunk) => ({ data: chunk.data }) as MessageEvent));
   }
 }
