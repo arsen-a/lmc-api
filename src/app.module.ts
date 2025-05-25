@@ -2,6 +2,9 @@ import databaseConfig from './config/database.config';
 import googleConfig from './config/google.config';
 import appConfig from './config/app.config';
 import mailConfig from './config/mail.config';
+import { Config } from './config/config.type';
+import milvusConfig from './config/milvus.config';
+import aiConfig from './config/ai.config';
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -10,7 +13,6 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { MailService } from './mail/mail.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { Config } from './config/config.type';
 import { CollabsModule } from './collabs/collabs.module';
 import { User } from './users/entities/user.entity';
 import { Collab } from './collabs/entities/collab.entity';
@@ -20,14 +22,14 @@ import { FileEntity } from './files/files.entity';
 import { ContentChunksModule } from './content-chunks/content-chunks.module';
 import { ContentChunk } from './content-chunks/content-chunks.entity';
 import { VectorStoreModule } from './vector-store/vector-store.module';
-import milvusConfig from './config/milvus.config';
+import { SharedModule } from './shared/shared.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
-      load: [googleConfig, databaseConfig, appConfig, mailConfig, milvusConfig],
+      load: [googleConfig, databaseConfig, appConfig, mailConfig, milvusConfig, aiConfig],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -55,6 +57,7 @@ import milvusConfig from './config/milvus.config';
     FilesModule,
     ContentChunksModule,
     VectorStoreModule,
+    SharedModule,
   ],
   controllers: [AppController],
   providers: [AppService, MailService],

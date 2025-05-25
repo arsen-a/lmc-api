@@ -1,40 +1,43 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
-import { TaskType } from '@google/generative-ai';
-import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts';
-import { StringOutputParser } from '@langchain/core/output_parsers';
-import { RunnableSequence } from '@langchain/core/runnables';
-import { HumanMessage, AIMessage } from '@langchain/core/messages';
-import { Milvus } from '@langchain/community/vectorstores/milvus';
-import { formatDocumentsAsString } from 'langchain/util/document';
 import { Observable } from 'rxjs';
 import { CollabPromptMessageDto } from 'src/collabs/collabs.dto';
-import { Document } from '@langchain/core/documents';
 import { ContentChunksService } from 'src/content-chunks/content-chunks.service';
 import { User } from 'src/users/entities/user.entity';
 import { Collab } from 'src/collabs/entities/collab.entity';
+// Langchain
+import { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts';
+import { Document } from '@langchain/core/documents';
+import { HumanMessage, AIMessage } from '@langchain/core/messages';
+import { Milvus } from '@langchain/community/vectorstores/milvus';
+import { OpenAIEmbeddings } from '@langchain/openai';
+import { RunnableSequence } from '@langchain/core/runnables';
+import { StringOutputParser } from '@langchain/core/output_parsers';
+import { formatDocumentsAsString } from 'langchain/util/document';
+import { VectorStore } from '@langchain/core/vectorstores';
 
 @Injectable()
 export class VectorStoreService {
-  private llm: ChatGoogleGenerativeAI;
+  private llm: BaseChatModel;
+  private vectorStore: VectorStore;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly contentChunkService: ContentChunksService,
   ) {
     this.llm = new ChatGoogleGenerativeAI({
-      apiKey: this.configService.get<string>('google.geminiApiKey'),
+      apiKey: this.configService.get<string>('ai.geminiApiKey'),
       streaming: true,
       model: 'gemini-2.0-flash',
+      temperature: 0.3,
     });
-  }
 
-  private getVectorStoreInstance(task: 'query' | 'store'): Milvus {
-    const embeddingProvider = new GoogleGenerativeAIEmbeddings({
-      apiKey: this.configService.get<string>('google.geminiApiKey'),
-      model: 'gemini-embedding-exp-03-07',
-      taskType: task === 'query' ? TaskType.RETRIEVAL_QUERY : TaskType.RETRIEVAL_DOCUMENT,
+    const embeddingProvider = new OpenAIEmbeddings({
+      apiKey: this.configService.get<string>('ai.openaiApiKey'),
+      model: 'text-embedding-3-large',
+      dimensions: 3072,
     });
 
     const vectorStore = new Milvus(embeddingProvider, {
@@ -52,8 +55,8 @@ export class VectorStoreService {
       textField: 'content',
     });
 
-    vectorStore.fields = ['content', 'chunkId', 'fileId', 'collabId'];
-    return vectorStore;
+    vectorStore.fields = ['id', 'content', 'chunkId', 'fileId', 'collabId'];
+    this.vectorStore = vectorStore;
   }
 
   async createChunksAndEmbeddings(data: { file: Express.Multer.File; user: User; collab: Collab }) {
@@ -82,10 +85,10 @@ export class VectorStoreService {
       });
     });
 
-    const ids = createdContentChunks.map(({ id }) => id);
-
     try {
-      await this.getVectorStoreInstance('store').addDocuments(documents, { ids });
+      await this.vectorStore.addDocuments(documents, {
+        ids: createdContentChunks.map(({ id }) => id),
+      });
     } catch (error) {
       console.error('Error adding documents to Milvus via Langchain:', error);
       throw new InternalServerErrorException(
@@ -103,7 +106,7 @@ export class VectorStoreService {
         msg.role === 'user' ? new HumanMessage(msg.content) : new AIMessage(msg.content),
       );
 
-    const retriever = this.getVectorStoreInstance('query').asRetriever({
+    const retriever = this.vectorStore.asRetriever({
       k: 5,
       filter: `collabId == '${collabId}'`,
     });

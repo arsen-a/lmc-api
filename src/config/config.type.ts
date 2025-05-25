@@ -1,4 +1,8 @@
 export interface Config {
+  ai: {
+    geminiApiKey: string;
+    openaiApiKey: string;
+  };
   app: {
     url: string;
     secret: string;
@@ -13,7 +17,6 @@ export interface Config {
   google: {
     clientId: string;
     clientSecret: string;
-    geminiApiKey: string;
   };
   mail: {
     host: string;
