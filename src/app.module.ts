@@ -18,11 +18,10 @@ import { User } from './users/entities/user.entity';
 import { Collab } from './collabs/entities/collab.entity';
 import { CollabUser } from './collabs/entities/collab-user.entity';
 import { FilesModule } from './files/files.module';
-import { FileEntity } from './files/files.entity';
-import { ContentChunksModule } from './content-chunks/content-chunks.module';
-import { ContentChunk } from './content-chunks/content-chunks.entity';
+import { FileEntity } from './files/file.entity';
 import { VectorStoreModule } from './vector-store/vector-store.module';
 import { SharedModule } from './shared/shared.module';
+import { FileContent } from './files/file-contents.entity';
 
 @Module({
   imports: [
@@ -45,7 +44,7 @@ import { SharedModule } from './shared/shared.module';
           username: dbConfig.username,
           password: dbConfig.password,
           database: dbConfig.name,
-          entities: [User, Collab, CollabUser, FileEntity, ContentChunk],
+          entities: [User, Collab, CollabUser, FileEntity, FileContent],
           synchronize: true,
         };
       },
@@ -55,7 +54,6 @@ import { SharedModule } from './shared/shared.module';
     UsersModule,
     CollabsModule,
     FilesModule,
-    ContentChunksModule,
     VectorStoreModule,
     SharedModule,
   ],

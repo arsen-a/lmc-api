@@ -1,15 +1,11 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Collab } from './entities/collab.entity';
 import { CollabUser, CollabRole } from './entities/collab-user.entity';
 import { User } from 'src/users/entities/user.entity';
 import { isUUID } from 'class-validator';
-import { FileEntity } from 'src/files/files.entity';
+import { FileEntity } from 'src/files/file.entity';
 
 @Injectable()
 export class CollabsService {
@@ -38,9 +34,7 @@ export class CollabsService {
     });
 
     if (!creator) {
-      throw new InternalServerErrorException(
-        'User entity for the provided userId not found',
-      );
+      throw new InternalServerErrorException('User entity for the provided userId not found');
     }
 
     await this.collabUserRepo.save({

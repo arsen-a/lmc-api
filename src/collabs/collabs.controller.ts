@@ -27,15 +27,17 @@ import { CollabContextGuard } from './guards/collab-context.guard';
 import { plainToInstance } from 'class-transformer';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { User } from 'src/users/entities/user.entity';
-import { FileEntity } from 'src/files/files.entity';
+import { FileEntity } from 'src/files/file.entity';
 import { VectorStoreService } from 'src/vector-store/vector-store.service';
 import { map } from 'rxjs';
+import { FilesService } from 'src/files/files.service';
 
 @Controller('collabs')
 @UseGuards(JwtAuthGuard, CollabContextGuard, PoliciesGuard)
 export class CollabController {
   constructor(
     private readonly collabsService: CollabsService,
+    private readonly filesService: FilesService,
     private readonly vectorStoreService: VectorStoreService,
   ) {}
 
@@ -104,11 +106,18 @@ export class CollabController {
     const user = req.user;
     const collab = req.subject;
 
-    await this.vectorStoreService.createChunksAndEmbeddings({
+    const fileContentsData = await this.filesService.saveExtractChunkFile({
       file,
       user,
       collab,
     });
+
+    if (fileContentsData === null) {
+      // TODO: Handle this accordingly
+      return;
+    }
+
+    await this.vectorStoreService.storeFileContentChunks(fileContentsData);
   }
 
   @Post(':collabId/prompt')

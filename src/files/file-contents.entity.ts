@@ -1,21 +1,23 @@
-import { FileEntity } from 'src/files/files.entity';
+import { FileEntity } from 'src/files/file.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
-  ManyToOne,
+  JoinColumn,
+  OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
-@Entity('content_chunks')
-export class ContentChunk {
+@Entity('file_contents')
+export class FileContent {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => FileEntity, (file) => file.contentChunks, {
+  @OneToOne(() => FileEntity, (file) => file.fileContent, {
     onDelete: 'CASCADE',
     nullable: false,
   })
+  @JoinColumn()
   file: FileEntity;
 
   @Column('text')

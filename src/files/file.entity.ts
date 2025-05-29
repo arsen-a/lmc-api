@@ -1,5 +1,4 @@
 import { Expose } from 'class-transformer';
-import { ContentChunk } from 'src/content-chunks/content-chunks.entity';
 import { User } from 'src/users/entities/user.entity';
 import {
   Column,
@@ -8,10 +7,11 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
-  OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { FileContent } from './file-contents.entity';
 
 @Entity('files')
 @Index('idx_files_related_model', ['relatedModelName', 'relatedModelId'])
@@ -56,9 +56,9 @@ export class FileEntity {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @OneToMany(() => ContentChunk, (contentChunk) => contentChunk.file, {
+  @OneToOne(() => FileContent, (content) => content.file, {
     cascade: ['insert', 'update'],
     eager: false,
   })
-  contentChunks?: ContentChunk[];
+  fileContent?: FileContent;
 }

@@ -1,11 +1,10 @@
 import { Module } from '@nestjs/common';
 import { VectorStoreService } from './vector-store.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ContentChunk } from 'src/content-chunks/content-chunks.entity';
-import { ContentChunksModule } from '../content-chunks/content-chunks.module';
+import { FileContent } from 'src/files/file-contents.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ContentChunk]), ContentChunksModule],
+  imports: [TypeOrmModule.forFeature([FileContent])],
   providers: [VectorStoreService],
   exports: [VectorStoreService],
 })

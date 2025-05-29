@@ -2,9 +2,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Observable } from 'rxjs';
 import { CollabPromptMessageDto } from 'src/collabs/collabs.dto';
-import { ContentChunksService } from 'src/content-chunks/content-chunks.service';
-import { User } from 'src/users/entities/user.entity';
-import { Collab } from 'src/collabs/entities/collab.entity';
+import { v4 as uuid } from 'uuid';
 // Langchain
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
@@ -17,6 +15,10 @@ import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { formatDocumentsAsString } from 'langchain/util/document';
 import { VectorStore } from '@langchain/core/vectorstores';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { FileContent } from 'src/files/file-contents.entity';
+import { SaveExtractChunkFileReturn } from 'src/files/files.service';
 
 @Injectable()
 export class VectorStoreService {
@@ -25,7 +27,8 @@ export class VectorStoreService {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly contentChunkService: ContentChunksService,
+    @InjectRepository(FileContent)
+    private readonly fileContentRepository: Repository<FileContent>,
   ) {
     this.llm = new ChatGoogleGenerativeAI({
       apiKey: this.configService.get<string>('ai.geminiApiKey'),
@@ -55,39 +58,27 @@ export class VectorStoreService {
       textField: 'content',
     });
 
-    vectorStore.fields = ['id', 'content', 'chunkId', 'fileId', 'collabId'];
+    vectorStore.fields = ['id', 'content', 'fileContentId', 'fileId', 'collabId'];
     this.vectorStore = vectorStore;
   }
 
-  async createChunksAndEmbeddings(data: { file: Express.Multer.File; user: User; collab: Collab }) {
-    const { user, collab, file } = data;
+  async storeFileContentChunks(data: SaveExtractChunkFileReturn) {
+    const { fileContent, extractedContentChunks } = data;
 
-    const createdContentChunks = await this.contentChunkService.chunkCollabFileContent({
-      file,
-      user,
-      collab,
-    });
+    const fileId = fileContent.file.id;
+    const fileContentId = fileContent.id;
+    const collabId = data.fileContent.file.relatedModelId;
 
-    if (!createdContentChunks.length) {
-      return;
-    }
-
-    const fileId = createdContentChunks[0].file.id;
-
-    const documents = createdContentChunks.map((chunk) => {
+    const documents = extractedContentChunks.map((chunk) => {
       return new Document({
-        pageContent: chunk.content,
-        metadata: {
-          chunkId: chunk.id,
-          fileId,
-          collabId: collab.id,
-        },
+        pageContent: chunk,
+        metadata: { fileContentId, fileId, collabId },
       });
     });
 
     try {
       await this.vectorStore.addDocuments(documents, {
-        ids: createdContentChunks.map(({ id }) => id),
+        ids: extractedContentChunks.map(() => uuid()),
       });
     } catch (error) {
       console.error('Error adding documents to Milvus via Langchain:', error);
@@ -130,6 +121,22 @@ export class VectorStoreService {
     const retrieverChain = RunnableSequence.from([
       (input: ChainInput) => input.input,
       retriever,
+      async (originalDocuments: Document<{ fileContentId: string }>[]): Promise<Document[]> => {
+        // Making distinct IDs because multiple contents
+        // could've been extracted from the same file.
+        const distinctIds = originalDocuments.reduce<string[]>((acc, { metadata }) => {
+          const fcId = metadata.fileContentId;
+          if (!acc.includes(fcId)) {
+            acc.push(fcId);
+          }
+          return acc;
+        }, []);
+
+        const fullDocuments = await this.fileContentRepository.find({
+          where: distinctIds.map((id) => ({ id })),
+        });
+        return fullDocuments.map((doc) => new Document({ pageContent: doc.content }));
+      },
       formatDocumentsAsString,
     ]);
 
