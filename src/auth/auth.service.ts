@@ -1,15 +1,11 @@
-import {
-  BadRequestException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users/users.service';
 import * as bcrypt from 'bcrypt';
 import { User } from 'src/users/entities/user.entity';
 import { CreateUserDto } from 'src/users/users.dto';
 import { MailService } from 'src/mail/mail.service';
-import { JwtPayload } from 'src/auth/types/jwt-payload.type';
+import { JwtPayload } from 'src/auth/auth.types';
 
 @Injectable()
 export class AuthService {
@@ -19,16 +15,11 @@ export class AuthService {
     private mailService: MailService,
   ) {}
 
-  async validateUser(
-    email: string,
-    pass: string,
-  ): Promise<Omit<User, 'password'>> {
+  async validateUser(email: string, pass: string): Promise<Omit<User, 'password'>> {
     const user = await this.usersService.findByEmail(email);
     if (user && (await bcrypt.compare(pass, user.password))) {
       if (!user.isVerified) {
-        throw new UnauthorizedException(
-          'Please verify your email before logging in',
-        );
+        throw new UnauthorizedException('Please verify your email before logging in');
       }
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...rest } = user;
@@ -51,10 +42,7 @@ export class AuthService {
     }
     const createdUser = await this.usersService.create(dto);
 
-    const token = this.jwtService.sign(
-      { email: createdUser.email },
-      { expiresIn: '1d' },
-    );
+    const token = this.jwtService.sign({ email: createdUser.email }, { expiresIn: '1d' });
     await this.mailService.sendVerificationEmail(createdUser.email, token);
 
     return {
@@ -94,19 +82,12 @@ export class AuthService {
       const diffMinutes = diffMs / (1000 * 60);
 
       if (diffMinutes < 1) {
-        throw new BadRequestException(
-          'Please wait before requesting another verification email',
-        );
+        throw new BadRequestException('Please wait before requesting another verification email');
       }
     }
 
     await this.usersService.updateVerificationTimestamp(user.email, now);
-
-    const token = this.jwtService.sign(
-      { email: user.email },
-      { expiresIn: '1d' },
-    );
-
+    const token = this.jwtService.sign({ email: user.email }, { expiresIn: '1d' });
     await this.mailService.sendVerificationEmail(user.email, token);
 
     return {
@@ -114,16 +95,21 @@ export class AuthService {
     };
   }
 
-  async loginWithGoogle(profile: { email: string; sub: string }) {
-    const existing = await this.usersService.findByEmail(profile.email);
+  async authenticateWithGoogle(profile: { email: string; firstName: string; lastName: string }) {
+    const { email, firstName, lastName } = profile;
+    const existing = await this.usersService.findByEmail(email);
     let user = existing;
 
     if (!user) {
-      user = await this.usersService.create({
-        email: profile.email,
-        password: '', // not used
-        isVerified: true,
-      });
+      user = await this.usersService.create(
+        {
+          firstName,
+          lastName,
+          email,
+          password: '',
+        },
+        true,
+      );
     }
 
     return this.login(user);

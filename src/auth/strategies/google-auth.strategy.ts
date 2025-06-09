@@ -1,8 +1,9 @@
 import { PassportStrategy } from '@nestjs/passport';
-import { Strategy, VerifyCallback } from 'passport-google-oauth20';
+import { Strategy, VerifyCallback, Profile } from 'passport-google-oauth20';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Config } from 'src/config/config.type';
+import { GoogleStrategyUserPayload } from 'src/auth/auth.types';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
@@ -26,11 +27,23 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     _: unknown,
     _accessToken: string,
     _refreshToken: string,
-    profile: { emails: { value: string }[]; id: string },
+    profile: Profile,
     done: VerifyCallback,
   ) {
-    const email = profile.emails[0].value;
-    const sub = profile.id;
-    done(null, { email, sub });
+    const { emails, name } = profile;
+    if (!emails?.length || !name) {
+      return done(new Error('Google profile does not satisfy API requirements'));
+    }
+    const email = emails[0].value;
+    const firstName = name.givenName;
+    const lastName = name.familyName;
+
+    const userPayload: GoogleStrategyUserPayload = {
+      email,
+      firstName,
+      lastName,
+    };
+
+    done(null, userPayload);
   }
 }

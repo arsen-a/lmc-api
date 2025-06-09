@@ -41,9 +41,6 @@ export class UsersService {
   }
 
   async updateVerificationTimestamp(email: string, timestamp: Date) {
-    await this.userRepository.update(
-      { email },
-      { lastVerificationSentAt: timestamp },
-    );
+    await this.userRepository.update({ email }, { lastVerificationSentAt: timestamp });
   }
 }

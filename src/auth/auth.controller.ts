@@ -14,7 +14,7 @@ import { LoginDto } from './auth.dto';
 import { CreateUserDto } from 'src/users/users.dto';
 import { ResendVerificationDto } from './auth.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { JwtPayload } from 'src/auth/types/jwt-payload.type';
+import { GoogleStrategyUserPayload } from 'src/auth/auth.types';
 import { User } from 'src/users/entities/user.entity';
 import { plainToInstance } from 'class-transformer';
 
@@ -56,13 +56,11 @@ export class AuthController {
 
   @Get('google')
   @UseGuards(AuthGuard('google'))
-  async googleAuth() {
-    // redirects to Google
-  }
+  async googleAuth() {}
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Req() req: Request & { user: JwtPayload }) {
-    return this.authService.loginWithGoogle(req.user);
+  async googleAuthRedirect(@Req() req: Request & { user: GoogleStrategyUserPayload }) {
+    return this.authService.authenticateWithGoogle(req.user);
   }
 }
