@@ -7,7 +7,7 @@ services:
       - POSTGRES_PASSWORD=lmc
       - POSTGRES_USER=lmc
     volumes:
-      - ./pgdata:/var/lib/postgresql/data
+      - lmc-pg-data:/var/lib/postgresql/data
     ports:
       - '5432:5432'
     networks:
@@ -45,3 +45,7 @@ services:
 networks:
   lmc-network:
     driver: bridge
+
+volumes:
+  lmc-pg-data:
+    driver: local
