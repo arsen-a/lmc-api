@@ -18,8 +18,9 @@ export class CollabContextGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<CollabContextRequest>();
     const collabId = req.params.collabId || req.body?.collabId;
-    const userId = req.user?.sub;
-    if (!collabId || !userId) {
+    const userId = req.user!.sub;
+
+    if (!collabId) {
       return true;
     }
 
