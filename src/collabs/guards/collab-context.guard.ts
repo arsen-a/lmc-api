@@ -1,21 +1,12 @@
 // src/collab/middleware/collab-context.middleware.ts
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, NotFoundException } from '@nestjs/common';
 import { Request } from 'express';
 import { CollabsService } from '../collabs.service';
 import { Subject } from '@casl/ability';
-import { User } from 'src/users/entities/user.entity';
+import { AuthTokenPayload } from 'src/auth/auth.types';
 
-type CollabContextRequest = Request<
-  { collabId?: string },
-  any,
-  { collabId?: string }
-> & {
-  user?: User;
+type CollabContextRequest = Request<{ collabId?: string }, any, { collabId?: string }> & {
+  user?: AuthTokenPayload;
   subject?: Subject;
   role?: string;
 };
@@ -27,7 +18,7 @@ export class CollabContextGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<CollabContextRequest>();
     const collabId = req.params.collabId || req.body?.collabId;
-    const userId = req.user?.id;
+    const userId = req.user?.sub;
     if (!collabId || !userId) {
       return true;
     }

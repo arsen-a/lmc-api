@@ -3,7 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import { Observable } from 'rxjs';
 import { CollabPromptMessageDto } from 'src/collabs/collabs.dto';
 import { v4 as uuid } from 'uuid';
-// Langchain
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts';

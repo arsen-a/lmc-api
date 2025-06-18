@@ -12,8 +12,7 @@ export class MailService {
     if (!mailConfig) {
       throw new Error('Mail configuration is not defined');
     }
-    const isMailTls =
-      this.configService.get<string>('app.url')?.startsWith('https') ?? false;
+    const isMailTls = this.configService.get<string>('app.url')?.startsWith('https') ?? false;
 
     const auth =
       mailConfig.user && mailConfig.pass

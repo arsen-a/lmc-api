@@ -1,6 +1,11 @@
-export interface JwtPayload {
+export interface AuthTokenPayload {
   sub: string;
   email: string;
+}
+
+export interface PreauthTokenPayload {
+  email: string;
+  ip: string;
 }
 
 export interface GoogleStrategyUserPayload {

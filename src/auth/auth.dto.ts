@@ -13,3 +13,8 @@ export class ResendVerificationDto {
   @IsEmail()
   email: string;
 }
+
+export class PreauthDto {
+  @IsEmail()
+  email: string;
+}

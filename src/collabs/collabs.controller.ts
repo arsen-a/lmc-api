@@ -16,7 +16,6 @@ import {
   Sse,
 } from '@nestjs/common';
 import { CollabsService } from './collabs.service';
-import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { CollabPromptDto, CreateCollabDto } from './collabs.dto';
 import { Request } from 'express';
 import { Collab } from './entities/collab.entity';
@@ -26,11 +25,14 @@ import { CollabActions } from './policies/collabs-ability.factory';
 import { CollabContextGuard } from './guards/collab-context.guard';
 import { plainToInstance } from 'class-transformer';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { User } from 'src/users/entities/user.entity';
 import { FileEntity } from 'src/files/file.entity';
 import { VectorStoreService } from 'src/vector-store/vector-store.service';
 import { map } from 'rxjs';
 import { FilesService } from 'src/files/files.service';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { AuthTokenPayload } from 'src/auth/auth.types';
+import { UsersService } from 'src/users/users.service';
+import { User } from 'src/users/entities/user.entity';
 
 @Controller('collabs')
 @UseGuards(JwtAuthGuard, CollabContextGuard, PoliciesGuard)
@@ -39,20 +41,21 @@ export class CollabController {
     private readonly collabsService: CollabsService,
     private readonly filesService: FilesService,
     private readonly vectorStoreService: VectorStoreService,
+    private readonly usersService: UsersService,
   ) {}
 
   @Get()
-  async index(@Req() req: Request & { user: { userId: string } }) {
-    const data = await this.collabsService.getCollabsForUser(req.user.userId);
+  async index(@Req() req: Request & { user: AuthTokenPayload }) {
+    const data = await this.collabsService.getCollabsForUser(req.user.sub);
     return plainToInstance(Collab, data);
   }
 
   @Post()
-  async create(@Body() dto: CreateCollabDto, @Req() req: Request & { user: { userId: string } }) {
+  async create(@Body() dto: CreateCollabDto, @Req() req: Request & { user: AuthTokenPayload }) {
     const data = await this.collabsService.createCollab({
       title: dto.title,
       description: dto.description,
-      userId: req.user.userId,
+      userId: req.user.sub,
     });
     return plainToInstance(Collab, data);
   }
@@ -87,7 +90,7 @@ export class CollabController {
       }),
     )
     file: Express.Multer.File,
-    @Req() req: Request & { subject: Collab; user: User },
+    @Req() req: Request & { subject: Collab; user: AuthTokenPayload },
   ) {
     const allowedMimeTypes = [
       'application/pdf',
@@ -103,7 +106,7 @@ export class CollabController {
       );
     }
 
-    const user = req.user;
+    const user = (await this.usersService.findById(req.user.sub)) as NonNullable<User>;
     const collab = req.subject;
 
     const fileContentsData = await this.filesService.saveExtractChunkFile({
