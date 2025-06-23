@@ -1,4 +1,15 @@
-import { Controller, Post, Get, Body, Query, UseGuards, Req, Ip } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Query,
+  UseGuards,
+  Req,
+  Ip,
+  HttpCode,
+  Redirect,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto, PreauthDto } from './auth.dto';
 import { CreateUserDto } from 'src/users/users.dto';
@@ -10,12 +21,14 @@ import { plainToInstance } from 'class-transformer';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { UsersService } from 'src/users/users.service';
 import { JwtPreauthGuard } from './guards/jwt-preauth.guard';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly usersService: UsersService,
+    private readonly configService: ConfigService,
   ) {}
 
   @Post('preauth')
@@ -32,13 +45,23 @@ export class AuthController {
 
   @Post('register')
   @UseGuards(JwtPreauthGuard)
+  @HttpCode(201)
   async register(@Body() dto: CreateUserDto) {
     return this.authService.register(dto);
   }
 
   @Get('verify')
+  @Redirect()
   async verifyEmail(@Query('token') token: string) {
-    return this.authService.verifyEmail(token);
+    const clientUrl = this.configService.get<string>('clientApp.url', '') + '/verify';
+    if (!clientUrl) {
+      throw new Error('Client app URL is not configured');
+    }
+    const { accessToken } = await this.authService.verifyEmail(token);
+    const url = new URL(clientUrl);
+    url.searchParams.set('token', accessToken);
+
+    return { url };
   }
 
   @Post('resend-verification')

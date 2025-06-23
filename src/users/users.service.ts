@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -26,7 +26,10 @@ export class UsersService {
     return this.userRepository.findOne({ where: { id } });
   }
 
-  async create(dto: CreateUserDto, isVerified: boolean = false): Promise<User> {
+  async create(
+    dto: Omit<CreateUserDto, 'passwordConfirm'>,
+    isVerified: boolean = false,
+  ): Promise<User> {
     const hashedPassword = await bcrypt.hash(dto.password, 10);
     const user = this.userRepository.create({
       ...dto,
@@ -36,8 +39,16 @@ export class UsersService {
     return this.userRepository.save(user);
   }
 
-  async verifyByEmail(email: string): Promise<void> {
-    await this.userRepository.update({ email }, { isVerified: true });
+  async verifyUser(email: string): Promise<User> {
+    const user = await this.findByEmail(email);
+    if (!user) {
+      throw new NotFoundException();
+    }
+    if (user.isVerified) {
+      throw new BadRequestException('User is already verified');
+    }
+    user.isVerified = true;
+    return await this.userRepository.save(user);
   }
 
   async updateVerificationTimestamp(email: string, timestamp: Date) {

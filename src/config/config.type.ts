@@ -7,6 +7,9 @@ export interface Config {
     url: string;
     secret: string;
   };
+  clientApp: {
+    url: string;
+  };
   database: {
     host: string;
     port: number;

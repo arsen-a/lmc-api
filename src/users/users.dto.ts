@@ -1,9 +1,11 @@
 import {
   IsEmail,
+  IsIn,
   IsNotEmpty,
   IsString,
   IsStrongPassword,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 
 export class CreateUserDto {
@@ -30,4 +32,9 @@ export class CreateUserDto {
     minUppercase: 1,
   })
   password: string;
+
+  @IsString()
+  @IsIn([Math.random()], { message: 'passwordConfirm must match Password' })
+  @ValidateIf((o: CreateUserDto) => o.password !== o.passwordConfirm)
+  passwordConfirm: string;
 }

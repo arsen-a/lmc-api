@@ -53,15 +53,15 @@ export class AuthService {
     await this.mailService.sendVerificationEmail(createdUser.email, token);
 
     return {
-      message: 'Please check your email to verify your account.',
+      message: 'Verification email sent. Please check your inbox',
     };
   }
 
   async verifyEmail(token: string) {
     try {
       const { payload } = await jwtDecrypt<AuthTokenPayload>(token, this.encryptionKey);
-      await this.usersService.verifyByEmail(payload.email);
-      return { message: 'Email successfully verified' };
+      const user = await this.usersService.verifyUser(payload.email);
+      return this.login(user);
     } catch {
       throw new BadRequestException('Invalid or expired token');
     }
@@ -79,7 +79,7 @@ export class AuthService {
     }
 
     if (user.isVerified) {
-      throw new BadRequestException('Email already verified');
+      throw new BadRequestException('User is already verified');
     }
 
     const now = new Date();
