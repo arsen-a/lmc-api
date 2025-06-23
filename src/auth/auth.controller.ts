@@ -53,13 +53,13 @@ export class AuthController {
   @Get('verify')
   @Redirect()
   async verifyEmail(@Query('token') token: string) {
-    const clientUrl = this.configService.get<string>('clientApp.url', '') + '/verify';
+    const clientUrl = this.configService.get<string>('clientApp.url', '');
     if (!clientUrl) {
       throw new Error('Client app URL is not configured');
     }
     const { accessToken } = await this.authService.verifyEmail(token);
     const url = new URL(clientUrl);
-    url.searchParams.set('token', accessToken);
+    url.searchParams.set('accessToken', accessToken);
 
     return { url };
   }

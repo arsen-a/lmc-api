@@ -87,9 +87,12 @@ export class AuthService {
     if (user.lastVerificationSentAt) {
       const diffMs = now.getTime() - user.lastVerificationSentAt.getTime();
       const diffMinutes = diffMs / (1000 * 60);
+      const seconds = 60 - Math.floor(diffMs / 1000);
 
       if (diffMinutes < 1) {
-        throw new BadRequestException('Please wait before requesting another verification email');
+        throw new BadRequestException(
+          `Please wait ${seconds} more second(s) before requesting another verification email`,
+        );
       }
     }
 

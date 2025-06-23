@@ -24,13 +24,19 @@ export class CreateUserDto {
   email: string;
 
   @IsString()
-  @IsStrongPassword({
-    minLength: 6,
-    minLowercase: 1,
-    minNumbers: 1,
-    minSymbols: 1,
-    minUppercase: 1,
-  })
+  @IsStrongPassword(
+    {
+      minLength: 6,
+      minLowercase: 1,
+      minNumbers: 1,
+      minSymbols: 1,
+      minUppercase: 1,
+    },
+    {
+      message:
+        'password Password must be made up of at least 6 characters, including at least one uppercase letter, one lowercase letter, one number, and one symbol.',
+    },
+  )
   password: string;
 
   @IsString()
