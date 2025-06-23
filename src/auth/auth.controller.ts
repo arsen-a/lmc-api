@@ -82,7 +82,15 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
+  @Redirect()
   async googleAuthRedirect(@Req() req: Request & { user: GoogleStrategyUserPayload }) {
-    return this.authService.authenticateWithGoogle(req.user);
+    const { accessToken } = await this.authService.authenticateWithGoogle(req.user);
+    const clientUrl = this.configService.get<string>('clientApp.url', '');
+    if (!clientUrl) {
+      throw new Error('Client app URL is not configured');
+    }
+    const url = new URL(clientUrl);
+    url.searchParams.set('accessToken', accessToken);
+    return { url };
   }
 }
