@@ -22,13 +22,23 @@ import { FileEntity } from './files/file.entity';
 import { VectorStoreModule } from './vector-store/vector-store.module';
 import { SharedModule } from './shared/shared.module';
 import { FileContent } from './files/file-contents.entity';
+import { CacheModule } from './cache/cache.module';
+import redisConfig from './config/redis.config';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
-      load: [googleConfig, databaseConfig, appConfig, mailConfig, milvusConfig, aiConfig],
+      load: [
+        googleConfig,
+        databaseConfig,
+        appConfig,
+        mailConfig,
+        milvusConfig,
+        aiConfig,
+        redisConfig,
+      ],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -56,6 +66,7 @@ import { FileContent } from './files/file-contents.entity';
     FilesModule,
     VectorStoreModule,
     SharedModule,
+    CacheModule,
   ],
   controllers: [AppController],
   providers: [AppService, MailService],

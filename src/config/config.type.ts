@@ -28,4 +28,13 @@ export interface Config {
     user: string;
     pass: string;
   };
+  redis: {
+    host: string;
+    port: number;
+    password: string;
+  };
+  milvus: {
+    uri: string;
+    token: string;
+  };
 }

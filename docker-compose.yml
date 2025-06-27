@@ -23,6 +23,7 @@ services:
     depends_on:
       - db
       - mailpit
+      - redis
     volumes:
       - .:/lmcapi
       - /lmcapi/node_modules
@@ -42,10 +43,25 @@ services:
     networks:
       - lmc-network
 
+  redis:
+    image: redis:8.0.2-alpine
+    container_name: lmc-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - lmc-network
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    volumes:
+      - lmc-redis-data:/data
+
 networks:
   lmc-network:
     driver: bridge
 
 volumes:
   lmc-pg-data:
+    driver: local
+  lmc-redis-data:
     driver: local

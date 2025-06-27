@@ -6,16 +6,19 @@ import {
   IsArray,
   IsNotEmpty,
   IsIn,
+  MaxLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateCollabDto {
   @IsString()
   @MinLength(3)
+  @MaxLength(50)
   title: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(500)
   description?: string;
 }
 

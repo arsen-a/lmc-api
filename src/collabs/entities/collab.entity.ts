@@ -14,10 +14,10 @@ export class Collab {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ nullable: false, length: 50, default: 'Untitled Topic' })
   title: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, length: 500 })
   description: string;
 
   @Exclude()
