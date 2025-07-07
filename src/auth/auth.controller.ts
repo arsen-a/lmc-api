@@ -9,13 +9,14 @@ import {
   Ip,
   HttpCode,
   Redirect,
+  Patch,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginDto, PreauthDto } from './auth.dto';
-import { CreateUserDto } from 'src/users/users.dto';
+import { LoginDto, PreauthDto, UpdateMeDto } from './auth.dto';
+import { RegisterDto } from 'src/auth/auth.dto';
 import { ResendVerificationDto } from './auth.dto';
 import { AuthGuard } from '@nestjs/passport';
-import { AuthTokenPayload, GoogleStrategyUserPayload } from 'src/auth/auth.types';
+import { GoogleStrategyUserPayload } from 'src/auth/auth.types';
 import { User } from 'src/users/entities/user.entity';
 import { plainToInstance } from 'class-transformer';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -46,7 +47,7 @@ export class AuthController {
   @Post('register')
   @UseGuards(JwtPreauthGuard)
   @HttpCode(201)
-  async register(@Body() dto: CreateUserDto) {
+  async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
@@ -71,10 +72,23 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  getMe(@Req() req: Request & { user: AuthTokenPayload }) {
+  getMe(@Req() req: AuthenticatedRequest) {
     const user = this.usersService.findById(req.user.sub);
     return plainToInstance(User, user, { excludeExtraneousValues: true });
   }
+
+  @Patch('me')
+  @UseGuards(JwtAuthGuard)
+  async updateMe(@Req() req: AuthenticatedRequest, @Body() body: UpdateMeDto) {
+    const user = await this.usersService.update(req.user.sub, body);
+    return plainToInstance(User, user, { excludeExtraneousValues: true });
+  }
+
+  // @Post('me/secure-update')
+  // @UseGuards(JwtAuthGuard)
+  // async secureUpdateMe(@Req() req: AuthenticatedRequest, @Body() body: SecureUpdateMeDto) {
+  //   //
+  // }
 
   @Get('google')
   @UseGuards(AuthGuard('google'))
