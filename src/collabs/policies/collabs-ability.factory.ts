@@ -1,10 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  PureAbility,
-  AbilityBuilder,
-  AbilityClass,
-  ExtractSubjectType,
-} from '@casl/ability';
+import { PureAbility, AbilityBuilder, AbilityClass, ExtractSubjectType } from '@casl/ability';
 import { Collab } from '../entities/collab.entity';
 import { CollabRole } from '../entities/collab-user.entity';
 
@@ -30,8 +25,7 @@ export class CollabAbilityFactory {
     }
 
     return build({
-      detectSubjectType: (item) =>
-        item.constructor as ExtractSubjectType<CollabSubjects>,
+      detectSubjectType: (item) => item.constructor as ExtractSubjectType<CollabSubjects>,
     });
   }
 }

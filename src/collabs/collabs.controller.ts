@@ -30,9 +30,8 @@ import { VectorStoreService } from 'src/vector-store/vector-store.service';
 import { map } from 'rxjs';
 import { FilesService } from 'src/files/files.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { AuthTokenPayload } from 'src/auth/auth.types';
-import { UsersService } from 'src/users/users.service';
-import { User } from 'src/users/entities/user.entity';
+import { UserService } from 'src/user/user.service';
+import { User } from 'src/user/entities/user.entity';
 
 @Controller('collabs')
 @UseGuards(JwtAuthGuard, CollabContextGuard, PoliciesGuard)
@@ -41,21 +40,21 @@ export class CollabController {
     private readonly collabsService: CollabsService,
     private readonly filesService: FilesService,
     private readonly vectorStoreService: VectorStoreService,
-    private readonly usersService: UsersService,
+    private readonly userService: UserService,
   ) {}
 
   @Get()
-  async index(@Req() req: Request & { user: AuthTokenPayload }) {
-    const data = await this.collabsService.getCollabsForUser(req.user.sub);
+  async index(@Req() req: AuthenticatedRequest) {
+    const data = await this.collabsService.getCollabsForUser(req.user);
     return plainToInstance(Collab, data);
   }
 
   @Post()
-  async create(@Body() dto: CreateCollabDto, @Req() req: Request & { user: AuthTokenPayload }) {
+  async create(@Body() dto: CreateCollabDto, @Req() req: AuthenticatedRequest) {
     const data = await this.collabsService.createCollab({
       title: dto.title,
       description: dto.description,
-      userId: req.user.sub,
+      user: req.user,
     });
     return plainToInstance(Collab, data);
   }
@@ -90,7 +89,7 @@ export class CollabController {
       }),
     )
     file: Express.Multer.File,
-    @Req() req: Request & { subject: Collab; user: AuthTokenPayload },
+    @Req() req: Request & { subject: Collab; user: User },
   ) {
     const allowedMimeTypes = [
       'application/pdf',
@@ -106,12 +105,11 @@ export class CollabController {
       );
     }
 
-    const user = (await this.usersService.findById(req.user.sub)) as NonNullable<User>;
     const collab = req.subject;
 
     const fileContentsData = await this.filesService.saveExtractChunkFile({
       file,
-      user,
+      user: req.user,
       collab,
     });
 

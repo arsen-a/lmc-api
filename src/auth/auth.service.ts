@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { UsersService } from 'src/users/users.service';
+import { UserService } from 'src/user/user.service';
 import * as bcrypt from 'bcrypt';
-import { User } from 'src/users/entities/user.entity';
+import { User } from 'src/user/entities/user.entity';
 import { RegisterDto } from 'src/auth/auth.dto';
 import { MailService } from 'src/mail/mail.service';
 import { AuthTokenPayload } from 'src/auth/auth.types';
@@ -15,7 +15,7 @@ export class AuthService {
   private readonly encryptionKey: Buffer;
 
   constructor(
-    private readonly usersService: UsersService,
+    private readonly userService: UserService,
     private readonly mailService: MailService,
     private readonly configService: ConfigService,
   ) {
@@ -23,31 +23,27 @@ export class AuthService {
     this.encryptionKey = Buffer.from(appSecret, 'base64');
   }
 
-  async validateUser(email: string, pass: string): Promise<Omit<User, 'password'>> {
-    const user = await this.usersService.findByEmail(email);
-    if (!user || !(await bcrypt.compare(pass, user.password))) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-    if (!user.isVerified) {
-      throw new UnauthorizedException('Please verify your email before logging in');
-    }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...rest } = user;
-    return rest;
-  }
-
-  async login(user: Omit<User, 'password'>) {
+  async getLoginResponse(user: Omit<User, 'password'>) {
     return {
       accessToken: await this.issueAuthToken(user),
     };
   }
 
+  async login(email: string, pass: string) {
+    const user = await this.userService.findByEmail(email);
+    if (!user || !(await bcrypt.compare(pass, user.password))) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    return await this.getLoginResponse(user);
+  }
+
   async register(dto: RegisterDto) {
-    const user = await this.usersService.findByEmail(dto.email);
+    const user = await this.userService.findByEmail(dto.email);
     if (user) {
       throw new BadRequestException('Email already exists');
     }
-    const createdUser = await this.usersService.create(dto);
+    const createdUser = await this.userService.create(dto);
 
     const token = await this.issueAuthToken(createdUser);
     await this.mailService.sendVerificationEmail(createdUser.email, token);
@@ -60,8 +56,8 @@ export class AuthService {
   async verifyEmail(token: string) {
     try {
       const { payload } = await jwtDecrypt<AuthTokenPayload>(token, this.encryptionKey);
-      const user = await this.usersService.verifyUser(payload.email);
-      return this.login(user);
+      const user = await this.userService.verifyUser(payload.email);
+      return this.getLoginResponse(user);
     } catch {
       throw new BadRequestException('Invalid or expired token');
     }
@@ -72,7 +68,7 @@ export class AuthService {
       throw new BadRequestException('Email is required');
     }
 
-    const user = await this.usersService.findByEmail(email);
+    const user = await this.userService.findByEmail(email);
 
     if (!user) {
       throw new BadRequestException('User not found');
@@ -96,7 +92,7 @@ export class AuthService {
       }
     }
 
-    await this.usersService.updateVerificationTimestamp(user.email, now);
+    await this.userService.updateVerificationTimestamp(user.email, now);
     const token = await this.issueAuthToken(user);
     await this.mailService.sendVerificationEmail(user.email, token);
 
@@ -107,11 +103,11 @@ export class AuthService {
 
   async authenticateWithGoogle(profile: { email: string; firstName: string; lastName: string }) {
     const { email, firstName, lastName } = profile;
-    const existing = await this.usersService.findByEmail(email);
+    const existing = await this.userService.findByEmail(email);
     let user = existing;
 
     if (!user) {
-      user = await this.usersService.create(
+      user = await this.userService.create(
         {
           firstName,
           lastName,
@@ -122,11 +118,11 @@ export class AuthService {
       );
     }
 
-    return this.login(user);
+    return await this.getLoginResponse(user);
   }
 
   async getPreauthData(email: string, ip: string) {
-    const user = await this.usersService.findByEmail(email);
+    const user = await this.userService.findByEmail(email);
     const flow: 'login' | 'register' = user ? 'login' : 'register';
     const token = await this.issuePreauthToken(email, ip);
 

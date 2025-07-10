@@ -3,10 +3,10 @@ import { CanActivate, ExecutionContext, Injectable, NotFoundException } from '@n
 import { Request } from 'express';
 import { CollabsService } from '../collabs.service';
 import { Subject } from '@casl/ability';
-import { AuthTokenPayload } from 'src/auth/auth.types';
+import { User } from 'src/user/entities/user.entity';
 
 type CollabContextRequest = Request<{ collabId?: string }, any, { collabId?: string }> & {
-  user?: AuthTokenPayload;
+  user?: User;
   subject?: Subject;
   role?: string;
 };
@@ -18,14 +18,13 @@ export class CollabContextGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<CollabContextRequest>();
     const collabId = req.params.collabId || req.body?.collabId;
-    const userId = req.user!.sub;
 
     if (!collabId) {
       return true;
     }
 
     const { collab, role } = await this.collabService.findUserCollabRole({
-      userId,
+      user: req.user,
       collabId,
     });
 

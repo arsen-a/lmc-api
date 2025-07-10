@@ -18,7 +18,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { isUUID } from 'class-validator';
-import { User } from 'src/users/entities/user.entity';
+import { User } from 'src/user/entities/user.entity';
 import { FileContent } from './file-contents.entity';
 
 export const FILE_CHUNK_SIZE = 2500;

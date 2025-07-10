@@ -1,8 +1,8 @@
-import type { AuthTokenPayload } from './auth/auth.types';
+import { User } from './user/entities/user.entity';
 
 declare global {
   type AuthenticatedRequest = Request & {
-    user: AuthTokenPayload;
+    user: User;
   };
 }
 

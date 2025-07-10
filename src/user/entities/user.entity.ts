@@ -5,7 +5,9 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
+import { UserChange } from './user-change.entity';
 
 @Entity('users')
 export class User {
@@ -32,6 +34,10 @@ export class User {
   @Exclude()
   @Column({ default: false })
   isVerified: boolean;
+
+  @Exclude()
+  @OneToMany(() => UserChange, (change) => change.user, { cascade: true })
+  changes: UserChange[];
 
   @Expose()
   @CreateDateColumn()

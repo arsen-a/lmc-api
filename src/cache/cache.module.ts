@@ -4,9 +4,11 @@ import { createKeyv } from '@keyv/redis';
 import { TabsCacheController } from './controllers/tabs-cache.controller';
 import { ConfigService } from '@nestjs/config';
 import { Config } from 'src/config/config.type';
+import { UserModule } from 'src/user/user.module';
 
 @Module({
   imports: [
+    UserModule,
     CacheManagerModule.registerAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {

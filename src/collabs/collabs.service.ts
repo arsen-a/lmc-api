@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Collab } from './entities/collab.entity';
 import { CollabUser, CollabRole } from './entities/collab-user.entity';
-import { User } from 'src/users/entities/user.entity';
+import { User } from 'src/user/entities/user.entity';
 import { isUUID } from 'class-validator';
 import { FileEntity } from 'src/files/file.entity';
 
@@ -20,26 +20,18 @@ export class CollabsService {
     private readonly fileRepo: Repository<FileEntity>,
   ) {}
 
-  async createCollab(data: {
-    title: string;
-    description?: string;
-    userId: string;
-  }): Promise<Collab> {
-    const { title, description = '', userId } = data;
+  async createCollab(data: { title: string; description?: string; user: User }): Promise<Collab> {
+    const { title, description = '', user } = data;
     const collab = this.collabRepo.create({ title, description });
     const savedCollab = await this.collabRepo.save(collab);
-    const creator = await this.userRepo.findOne({
-      where: { id: userId },
-      loadEagerRelations: false,
-    });
 
-    if (!creator) {
+    if (!user) {
       throw new InternalServerErrorException('User entity for the provided userId not found');
     }
 
     await this.collabUserRepo.save({
       collab: savedCollab,
-      user: creator,
+      user,
       role: CollabRole.OWNER,
     });
 
@@ -47,12 +39,12 @@ export class CollabsService {
   }
 
   async findUserCollabRole(data: {
-    userId?: string;
+    user?: User;
     collabId?: string;
   }): Promise<{ collab: Collab | null; role: CollabRole | null }> {
-    const { userId, collabId } = data;
+    const { user, collabId } = data;
 
-    if (!userId || !collabId || !isUUID(collabId, '4')) {
+    if (!user || !collabId || !isUUID(collabId, '4')) {
       return { collab: null, role: null };
     }
 
@@ -62,7 +54,7 @@ export class CollabsService {
         loadEagerRelations: false,
       }),
       this.collabUserRepo.findOne({
-        where: { user: { id: userId }, collab: { id: collabId } },
+        where: { user: { id: user.id }, collab: { id: collabId } },
       }),
     ]);
 
@@ -73,11 +65,11 @@ export class CollabsService {
     return { collab, role: collabUser.role };
   }
 
-  async getCollabsForUser(userId: User['id']) {
+  async getCollabsForUser(user: User) {
     return this.collabRepo.find({
       where: {
         collabUsers: {
-          user: { id: userId },
+          user: { id: user.id },
           role: In(Object.values(CollabRole)),
         },
       },

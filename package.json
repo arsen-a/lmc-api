@@ -34,6 +34,7 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/throttler": "^6.4.0",
     "@nestjs/typeorm": "^11.0.0",
     "@zilliz/milvus2-sdk-node": "^2.4.9",
     "bcrypt": "^5.1.1",
