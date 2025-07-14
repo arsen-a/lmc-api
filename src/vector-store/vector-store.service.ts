@@ -102,7 +102,7 @@ export class VectorStoreService {
     });
 
     const systemMessageContent = `
-      You are an assistant working at "LLM Collab" that answers user questions based on the context provided below.
+      You are an assistant working at "Ragment" that answers user questions based on the context provided below.
       You do not tell the user that you are answering based on the context.
       You are not allowed to make up information or hallucinate.
       If the question is not related to the context explain that you are not able to answer and keep the conversation going in a friendly manner.

@@ -16,7 +16,6 @@ import { plainToInstance } from 'class-transformer';
 import { User } from './entities/user.entity';
 import { UpdateMeDto } from './dto/update-me.dto';
 import { CreateUserChangeDto } from './dto/create-user-change.dto';
-import { Throttle } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
 import { VerifyUserChangeDto } from './dto/verify-user-change.dto';
 import { Public } from 'src/app/decorators/public.decorator';
@@ -52,15 +51,14 @@ export class UserController {
     return plainToInstance(User, user, { excludeExtraneousValues: true });
   }
 
-  @Post('secure-change')
-  @Throttle({ default: { ttl: 30 * 1000, limit: 1 } })
+  @Post('secure-update')
   @UseGuards(JwtAuthGuard)
   @HttpCode(204)
   secureUpdateMe(@Req() req: AuthenticatedRequest, @Body() body: CreateUserChangeDto) {
     return this.userService.secureUpdate(req.user, body);
   }
 
-  @Get('secure-change/verify')
+  @Get('secure-update/verify')
   @Public()
   @Redirect()
   async verifyEmail(@Query() query: VerifyUserChangeDto) {
@@ -74,7 +72,7 @@ export class UserController {
       throw new UnsupportedMessageTypeError(type);
     }
 
-    url.searchParams.set('message', message);
+    url.searchParams.set('apiMessage', message);
     return { url };
   }
 }

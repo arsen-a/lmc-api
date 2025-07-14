@@ -24,12 +24,9 @@ import { FileContent } from 'src/files/file-contents.entity';
 import { CacheModule } from 'src/cache/cache.module';
 import redisConfig from 'src/config/redis.config';
 import { UserChange } from 'src/user/entities/user-change.entity';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot([{ ttl: 0, limit: 0 }]),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
@@ -72,6 +69,6 @@ import { APP_GUARD } from '@nestjs/core';
     CacheModule,
   ],
   controllers: [AppController],
-  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [AppService],
 })
 export class AppModule {}

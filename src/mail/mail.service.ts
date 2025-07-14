@@ -55,7 +55,7 @@ export class MailService {
     recipient: string;
     type: UserChangeType;
   }) {
-    const url = `${this.appUrl}/api/users/secure-change/verify?token=${data.token}&type=${data.type}`;
+    const url = `${this.appUrl}/api/users/secure-update/verify?token=${data.token}&type=${data.type}`;
 
     await this.transporter.sendMail({
       to: data.recipient,
@@ -70,7 +70,7 @@ export class MailService {
   }
 
   async sendNewPasswordChange(data: { user: User; token: string; type: UserChangeType }) {
-    const url = `${this.appUrl}/api/users/secure-change/verify?token=${data.token}&type=${data.type}`;
+    const url = `${this.appUrl}/api/users/secure-update/verify?token=${data.token}&type=${data.type}`;
 
     await this.transporter.sendMail({
       to: data.user.email,
