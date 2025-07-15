@@ -9,6 +9,7 @@ import {
   Ip,
   HttpCode,
   Redirect,
+  Res,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto, PreauthDto } from './auth.dto';
@@ -18,6 +19,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { GoogleStrategyUserPayload } from 'src/auth/auth.types';
 import { JwtPreauthGuard } from './guards/jwt-preauth.guard';
 import { ConfigService } from '@nestjs/config';
+import { Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -41,8 +43,21 @@ export class AuthController {
 
   @Post('login')
   @UseGuards(JwtPreauthGuard)
-  async login(@Body() body: LoginDto) {
-    return await this.authService.login(body.email, body.password);
+  @HttpCode(204)
+  async login(@Body() body: LoginDto, @Res({ passthrough: true }) res: Response) {
+    const { accessToken } = await this.authService.login(body.email, body.password);
+
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
+  }
+
+  @Post('logout')
+  @HttpCode(204)
+  logout(@Res({ passthrough: true }) res: Response) {
+    res.clearCookie('accessToken');
   }
 
   @Post('register')
@@ -54,12 +69,16 @@ export class AuthController {
 
   @Get('verify')
   @Redirect()
-  async verifyEmail(@Query('token') token: string) {
+  async verifyEmail(@Query('token') token: string, @Res({ passthrough: true }) res: Response) {
     const { accessToken } = await this.authService.verifyEmail(token);
-    const url = new URL(this.clientUrl);
-    url.searchParams.set('accessToken', accessToken);
 
-    return { url };
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
+
+    return { url: new URL(this.clientUrl) };
   }
 
   @Post('resend-verification')

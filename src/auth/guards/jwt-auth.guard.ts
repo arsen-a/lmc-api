@@ -18,7 +18,7 @@ export class JwtAuthGuard extends BaseJwtGuard {
     }
 
     const req = context.switchToHttp().getRequest<Request>();
-    const token = this.extractToken(req);
+    const token = this.extractTokenCookie(req);
 
     if (!token) {
       throw new UnauthorizedException('Missing token');

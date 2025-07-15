@@ -20,12 +20,17 @@ export abstract class BaseJwtGuard implements CanActivate {
 
   abstract canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean>;
 
-  protected extractToken(req: Request): string | null {
+  protected extractTokenHeader(req: Request): string | null {
     const auth = req.headers['authorization'];
     if (!auth?.startsWith('Bearer ')) {
       return null;
     }
     const parts = auth.split(' ');
     return parts.length === 2 ? parts[1] : null;
+  }
+
+  protected extractTokenCookie(req: Request): string | null {
+    const token = req.cookies?.['accessToken'] as string | undefined;
+    return token || null;
   }
 }

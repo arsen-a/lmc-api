@@ -8,7 +8,7 @@ import { BaseJwtGuard } from './base-jwt.guard';
 export class JwtPreauthGuard extends BaseJwtGuard {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest<Request>();
-    const token = this.extractToken(req);
+    const token = this.extractTokenHeader(req);
 
     if (!token) {
       throw new UnauthorizedException('Missing Preauth Token');
