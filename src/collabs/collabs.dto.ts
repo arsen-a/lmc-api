@@ -7,6 +7,7 @@ import {
   IsNotEmpty,
   IsIn,
   MaxLength,
+  IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -20,6 +21,9 @@ export class CreateCollabDto {
   @IsString()
   @MaxLength(500)
   description?: string;
+
+  @IsBoolean()
+  private?: boolean;
 }
 
 export class CollabPromptMessageDto {

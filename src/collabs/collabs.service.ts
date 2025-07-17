@@ -74,6 +74,7 @@ export class CollabsService {
         },
       },
       relations: ['collabUsers'],
+      order: { createdAt: 'DESC' },
     });
   }
 

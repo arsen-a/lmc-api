@@ -93,14 +93,17 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   @Redirect()
-  async googleAuthRedirect(@Req() req: Request & { user: GoogleStrategyUserPayload }) {
+  async googleAuthRedirect(
+    @Req() req: Request & { user: GoogleStrategyUserPayload },
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const { accessToken } = await this.authService.authenticateWithGoogle(req.user);
-    const clientUrl = this.configService.get<string>('clientApp.url', '');
-    if (!clientUrl) {
-      throw new Error('Client app URL is not configured');
-    }
-    const url = new URL(clientUrl);
-    url.searchParams.set('accessToken', accessToken);
-    return { url };
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
+
+    return { url: new URL(this.clientUrl) };
   }
 }
