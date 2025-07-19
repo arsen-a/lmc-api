@@ -24,6 +24,9 @@ export class Collab {
   @OneToMany(() => CollabUser, (cu: CollabUser) => cu.collab)
   collabUsers: CollabUser[];
 
+  @Column({ default: false })
+  private: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

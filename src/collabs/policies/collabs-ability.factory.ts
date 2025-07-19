@@ -3,7 +3,7 @@ import { PureAbility, AbilityBuilder, AbilityClass, ExtractSubjectType } from '@
 import { Collab } from '../entities/collab.entity';
 import { CollabRole } from '../entities/collab-user.entity';
 
-export type CollabActions = 'read' | 'update' | 'invite' | 'contribute';
+export type CollabActions = 'read' | 'update' | 'invite' | 'contribute' | 'delete';
 export type CollabSubjects = typeof Collab | Collab;
 export type CollabAbility = PureAbility<[CollabActions, CollabSubjects]>;
 
@@ -19,6 +19,7 @@ export class CollabAbilityFactory {
       can('invite', Collab);
       can('update', Collab);
       can('read', Collab);
+      can('delete', Collab);
     } else if (role === CollabRole.MEMBER) {
       can('contribute', Collab);
       can('read', Collab);

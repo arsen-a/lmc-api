@@ -194,4 +194,15 @@ export class FilesService {
       );
     }
   }
+
+  async deleteUploadsForFiles(files: FileEntity[]): Promise<void> {
+    for (const file of files) {
+      try {
+        await fs.unlink(file.path);
+        this.logger.log(`Deleted file from storage: ${file.path}`);
+      } catch (error) {
+        this.logger.error(`Failed to delete file from storage: ${file.path}`, error);
+      }
+    }
+  }
 }

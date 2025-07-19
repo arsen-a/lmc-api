@@ -10,6 +10,7 @@ import { FilesModule } from 'src/files/files.module';
 import { FileEntity } from 'src/files/file.entity';
 import { VectorStoreModule } from 'src/vector-store/vector-store.module';
 import { UserModule } from 'src/user/user.module';
+import { CacheModule } from 'src/cache/cache.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { UserModule } from 'src/user/user.module';
     FilesModule,
     VectorStoreModule,
     UserModule,
+    CacheModule,
   ],
   providers: [
     CollabsService,

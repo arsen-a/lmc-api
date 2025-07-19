@@ -1,11 +1,14 @@
 import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { DataSource, EntityManager, In, Repository } from 'typeorm';
 import { Collab } from './entities/collab.entity';
 import { CollabUser, CollabRole } from './entities/collab-user.entity';
 import { User } from 'src/user/entities/user.entity';
 import { isUUID } from 'class-validator';
 import { FileEntity } from 'src/files/file.entity';
+import { VectorStoreService } from 'src/vector-store/vector-store.service';
+import { FilesService } from 'src/files/files.service';
+import { TabsCacheService } from 'src/cache/services/tabs-cache.service';
 
 @Injectable()
 export class CollabsService {
@@ -14,10 +17,12 @@ export class CollabsService {
     private readonly collabRepo: Repository<Collab>,
     @InjectRepository(CollabUser)
     private readonly collabUserRepo: Repository<CollabUser>,
-    @InjectRepository(User)
-    private readonly userRepo: Repository<User>,
     @InjectRepository(FileEntity)
     private readonly fileRepo: Repository<FileEntity>,
+    private readonly dataSource: DataSource,
+    private readonly vectorStoreService: VectorStoreService,
+    private readonly filesService: FilesService,
+    private readonly tabsCacheService: TabsCacheService,
   ) {}
 
   async createCollab(data: { title: string; description?: string; user: User }): Promise<Collab> {
@@ -90,5 +95,28 @@ export class CollabsService {
       },
       relations: ['user'],
     });
+  }
+
+  async deleteCollab(collab: Collab, user?: User) {
+    const collabId = collab.id;
+
+    try {
+      const collabFiles = await this.fileRepo.find({
+        where: { relatedModelName: Collab.name, relatedModelId: collabId },
+      });
+
+      await this.dataSource.transaction(async (transactionalEntityManager: EntityManager) => {
+        await transactionalEntityManager.remove(FileEntity, collabFiles);
+        await transactionalEntityManager.remove(Collab, collab);
+      });
+
+      await Promise.all([
+        this.vectorStoreService.deleteForCollab(collabId),
+        this.filesService.deleteUploadsForFiles(collabFiles),
+        user ? this.tabsCacheService.removeTabsForCollab(user, collab) : null,
+      ]);
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to delete collab', String(error));
+    }
   }
 }

@@ -14,6 +14,7 @@ import {
   Param,
   UnprocessableEntityException,
   Sse,
+  Delete,
 } from '@nestjs/common';
 import { CollabsService } from './collabs.service';
 import { CollabPromptDto, CreateCollabDto } from './collabs.dto';
@@ -66,6 +67,16 @@ export class CollabController {
   })
   showCollab(@Req() req: Request & { subject: Collab }) {
     return plainToInstance(Collab, req.subject);
+  }
+
+  @Delete(':collabId')
+  @CheckAbilities<CollabActions, typeof Collab>({
+    action: 'delete',
+    subject: Collab,
+  })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteCollab(@Req() req: AuthenticatedRequest & { subject: Collab }) {
+    await this.collabsService.deleteCollab(req.subject, req.user);
   }
 
   @Get(':collabId/content')

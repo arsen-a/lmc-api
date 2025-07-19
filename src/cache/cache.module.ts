@@ -5,6 +5,7 @@ import { TabsCacheController } from './controllers/tabs-cache.controller';
 import { ConfigService } from '@nestjs/config';
 import { Config } from 'src/config/config.type';
 import { UserModule } from 'src/user/user.module';
+import { TabsCacheService } from './services/tabs-cache.service';
 
 @Module({
   imports: [
@@ -22,5 +23,7 @@ import { UserModule } from 'src/user/user.module';
     }),
   ],
   controllers: [TabsCacheController],
+  providers: [TabsCacheService],
+  exports: [TabsCacheService],
 })
 export class CacheModule {}

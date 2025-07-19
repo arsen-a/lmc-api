@@ -13,7 +13,6 @@ import { OpenAIEmbeddings } from '@langchain/openai';
 import { RunnableSequence } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { formatDocumentsAsString } from 'langchain/util/document';
-import { VectorStore } from '@langchain/core/vectorstores';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FileContent } from 'src/files/file-contents.entity';
@@ -22,7 +21,7 @@ import { SaveExtractChunkFileReturn } from 'src/files/files.service';
 @Injectable()
 export class VectorStoreService {
   private llm: BaseChatModel;
-  private vectorStore: VectorStore;
+  private vectorStore: Milvus;
 
   constructor(
     private readonly configService: ConfigService,
@@ -167,5 +166,9 @@ export class VectorStoreService {
           subscriber.error(error);
         });
     });
+  }
+
+  async deleteForCollab(collabId: string) {
+    await this.vectorStore.delete({ filter: `collabId == '${collabId}'` });
   }
 }
