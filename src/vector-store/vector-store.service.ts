@@ -1,7 +1,7 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Observable } from 'rxjs';
-import { CollabPromptMessageDto } from 'src/collabs/collabs.dto';
+import { CollabPromptMessageDto } from 'src/collabs/dto/collab-prompt.dto';
 import { v4 as uuid } from 'uuid';
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';

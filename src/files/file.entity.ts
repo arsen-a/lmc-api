@@ -1,4 +1,3 @@
-import { Expose } from 'class-transformer';
 import { User } from 'src/user/entities/user.entity';
 import {
   Column,
@@ -17,7 +16,6 @@ import { FileContent } from './file-contents.entity';
 @Index('idx_files_related_model', ['relatedModelName', 'relatedModelId'])
 @Index('idx_files_user', ['userId'])
 export class FileEntity {
-  @Expose()
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -49,6 +47,9 @@ export class FileEntity {
 
   @Column({ type: 'bigint', unsigned: true })
   size: number;
+
+  @Column({ nullable: true, length: 500 })
+  description?: string;
 
   @CreateDateColumn()
   createdAt: Date;

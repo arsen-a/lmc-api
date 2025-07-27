@@ -59,6 +59,7 @@ export class FilesService {
     user: User,
     relatedModelName: string,
     relatedModelId: string,
+    description?: string,
   ): Promise<FileEntity> {
     const idsValid = [user.id, relatedModelId].every((id) => isUUID(id));
     if (!idsValid || !file || !relatedModelName) {
@@ -88,6 +89,7 @@ export class FilesService {
         user,
         relatedModelId,
         relatedModelName,
+        description,
       });
 
       return await this.fileRepository.save(newFile);
@@ -152,12 +154,19 @@ export class FilesService {
   }
 
   async saveExtractChunkFile(data: {
-    file: Express.Multer.File;
+    payload: { description?: string; file: Express.Multer.File };
     user: User;
     collab: Collab;
   }): Promise<SaveExtractChunkFileReturn | null> {
-    const { file, user, collab } = data;
-    const savedFile = await this.uploadFile(file, user, Collab.name, collab.id);
+    const { payload, user, collab } = data;
+    const file = payload.file;
+    const savedFile = await this.uploadFile(
+      file,
+      user,
+      Collab.name,
+      collab.id,
+      payload.description,
+    );
 
     let extractedContents: string = '';
     const mimeType = file.mimetype;

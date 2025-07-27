@@ -17,7 +17,6 @@ import {
   Delete,
 } from '@nestjs/common';
 import { CollabsService } from './collabs.service';
-import { CollabPromptDto, CreateCollabDto } from './collabs.dto';
 import { Request } from 'express';
 import { Collab } from './entities/collab.entity';
 import { CheckAbilities } from 'src/auth/decorators/check-abilities.decorator';
@@ -32,7 +31,9 @@ import { map } from 'rxjs';
 import { FilesService } from 'src/files/files.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { UserService } from 'src/user/user.service';
-import { User } from 'src/user/entities/user.entity';
+import { CollabPromptDto } from './dto/collab-prompt.dto';
+import { CreateCollabDto } from './dto/create-collab.dto';
+import { AddContentDto } from './dto/add-collab-content';
 
 @Controller('collabs')
 @UseGuards(JwtAuthGuard, CollabContextGuard, PoliciesGuard)
@@ -94,13 +95,14 @@ export class CollabController {
   @CheckAbilities<CollabActions, typeof Collab>({ action: 'contribute', subject: Collab })
   @HttpCode(HttpStatus.CREATED)
   async addContent(
+    @Body() body: AddContentDto,
     @UploadedFile(
       new ParseFilePipe({
         validators: [new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 })],
       }),
     )
     file: Express.Multer.File,
-    @Req() req: Request & { subject: Collab; user: User },
+    @Req() req: AuthenticatedRequest & { subject: Collab },
   ) {
     const allowedMimeTypes = [
       'application/pdf',
@@ -119,7 +121,7 @@ export class CollabController {
     const collab = req.subject;
 
     const fileContentsData = await this.filesService.saveExtractChunkFile({
-      file,
+      payload: { ...body, file },
       user: req.user,
       collab,
     });
@@ -130,6 +132,7 @@ export class CollabController {
     }
 
     await this.vectorStoreService.storeFileContentChunks(fileContentsData);
+    return plainToInstance(FileEntity, fileContentsData.fileContent.file);
   }
 
   @Post(':collabId/prompt')
